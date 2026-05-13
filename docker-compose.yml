@@ -1,0 +1,69 @@
+# DEALR Backend — local dev stack.
+# Spin up: docker compose up -d
+# Tear down: docker compose down       (keeps data)
+# Wipe data: docker compose down -v    (drops volumes)
+#
+# Postgres 16 with pgvector extension pre-installed.
+# Redis 7 with persistence enabled.
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: dealr-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: dealr
+      POSTGRES_PASSWORD: dealr
+      POSTGRES_DB: dealr
+      # Pre-tune for dev. Production sizing is separate.
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
+    ports:
+      - "5432:5432"
+    volumes:
+      - dealr_pg_data:/var/lib/postgresql/data
+      - ./scripts/postgres-init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dealr -d dealr"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: dealr-redis
+    restart: unless-stopped
+    command: >
+      redis-server
+      --appendonly yes
+      --maxmemory 256mb
+      --maxmemory-policy allkeys-lru
+    ports:
+      - "6379:6379"
+    volumes:
+      - dealr_redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # Optional: pgAdmin for visual DB inspection during dev.
+  # Comment out if you don't want it.
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: dealr-pgadmin
+    restart: unless-stopped
+    profiles: ["tools"]      # only starts with: docker compose --profile tools up
+    environment:
+      PGADMIN_DEFAULT_EMAIL: dev@dealr.local
+      PGADMIN_DEFAULT_PASSWORD: dealr
+      PGADMIN_CONFIG_SERVER_MODE: "False"
+    ports:
+      - "5050:80"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  dealr_pg_data:
+  dealr_redis_data:
