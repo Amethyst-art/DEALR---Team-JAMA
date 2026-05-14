@@ -31,7 +31,7 @@ No guesswork. No ghosting. No silence.
 | 3 | Agreement generated automatically |
 | 4 | Client receives shareable link, reviews terms, pays via Squad |
 | 5 | Funds held in escrow |
-| 6 | Client confirms delivery → Squad releases payment to artisan |
+| 6 | Client confirms delivery and Squad releases payment to artisan |
 
 ---
 
