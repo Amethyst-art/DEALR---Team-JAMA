@@ -1,13 +1,15 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from decimal import Decimal, ROUND_HALF_EVEN
+from decimal import ROUND_HALF_EVEN, Decimal
 
 from app.core.errors import DealrError
 
 
 class LedgerError(DealrError):
-    def __init__(self, message: str = "Ledger imbalance", *, details: dict[str, object] | None = None) -> None:
+    def __init__(
+        self, message: str = "Ledger imbalance", *, details: dict[str, object] | None = None
+    ) -> None:
         super().__init__(message, details=details)
 
 
@@ -44,7 +46,12 @@ def assert_balanced(entries: list[LedgerEntry]) -> None:
 def post_escrowed(job_id: str, gross_kobo: int) -> list[LedgerEntry]:
     entries = [
         LedgerEntry(account="master", debit_kobo=gross_kobo, credit_kobo=0, event_type="ESCROWED"),
-        LedgerEntry(account=f"client_liability:{job_id}", debit_kobo=0, credit_kobo=gross_kobo, event_type="ESCROWED"),
+        LedgerEntry(
+            account=f"client_liability:{job_id}",
+            debit_kobo=0,
+            credit_kobo=gross_kobo,
+            event_type="ESCROWED",
+        ),
     ]
     assert_balanced(entries)
     return entries
@@ -54,9 +61,19 @@ def post_released(job_id: str, gross_kobo: int, fee_bps: int) -> list[LedgerEntr
     fee = bankers_round(gross_kobo, Decimal(fee_bps) / Decimal(10000))
     net = gross_kobo - fee
     entries = [
-        LedgerEntry(account=f"client_liability:{job_id}", debit_kobo=gross_kobo, credit_kobo=0, event_type="RELEASED"),
+        LedgerEntry(
+            account=f"client_liability:{job_id}",
+            debit_kobo=gross_kobo,
+            credit_kobo=0,
+            event_type="RELEASED",
+        ),
         LedgerEntry(account="fee_revenue", debit_kobo=0, credit_kobo=fee, event_type="RELEASED"),
-        LedgerEntry(account=f"artisan_payable:{job_id}", debit_kobo=0, credit_kobo=net, event_type="RELEASED"),
+        LedgerEntry(
+            account=f"artisan_payable:{job_id}",
+            debit_kobo=0,
+            credit_kobo=net,
+            event_type="RELEASED",
+        ),
     ]
     assert_balanced(entries)
     return entries
@@ -64,8 +81,15 @@ def post_released(job_id: str, gross_kobo: int, fee_bps: int) -> list[LedgerEntr
 
 def post_disbursement(job_id: str, net_kobo: int) -> list[LedgerEntry]:
     entries = [
-        LedgerEntry(account=f"artisan_payable:{job_id}", debit_kobo=net_kobo, credit_kobo=0, event_type="DISBURSEMENT"),
-        LedgerEntry(account="master", debit_kobo=0, credit_kobo=net_kobo, event_type="DISBURSEMENT"),
+        LedgerEntry(
+            account=f"artisan_payable:{job_id}",
+            debit_kobo=net_kobo,
+            credit_kobo=0,
+            event_type="DISBURSEMENT",
+        ),
+        LedgerEntry(
+            account="master", debit_kobo=0, credit_kobo=net_kobo, event_type="DISBURSEMENT"
+        ),
     ]
     assert_balanced(entries)
     return entries
@@ -73,7 +97,12 @@ def post_disbursement(job_id: str, net_kobo: int) -> list[LedgerEntry]:
 
 def post_refunded(job_id: str, gross_kobo: int) -> list[LedgerEntry]:
     entries = [
-        LedgerEntry(account=f"client_liability:{job_id}", debit_kobo=gross_kobo, credit_kobo=0, event_type="REFUNDED"),
+        LedgerEntry(
+            account=f"client_liability:{job_id}",
+            debit_kobo=gross_kobo,
+            credit_kobo=0,
+            event_type="REFUNDED",
+        ),
         LedgerEntry(account="master", debit_kobo=0, credit_kobo=gross_kobo, event_type="REFUNDED"),
     ]
     assert_balanced(entries)
