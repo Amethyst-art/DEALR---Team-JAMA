@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import httpx
-import pytest
 
 
 async def test_health_returns_200(client: httpx.AsyncClient) -> None:
