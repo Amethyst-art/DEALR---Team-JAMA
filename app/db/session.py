@@ -23,7 +23,7 @@ def init_db(settings: Settings) -> None:
     Must be called once during FastAPI lifespan startup.
     Supabase requires SSL on all connections — enforced via connect_args.
     """
-    global _engine_instance, _session_factory  # noqa: PLW0603
+    global _engine_instance, _session_factory
 
     _engine_instance = create_async_engine(
         settings.DATABASE_URL,
@@ -43,7 +43,7 @@ def init_db(settings: Settings) -> None:
 
 async def close_db() -> None:
     """Dispose the engine. Called during lifespan shutdown."""
-    global _engine_instance, _session_factory  # noqa: PLW0603
+    global _engine_instance, _session_factory
     if _engine_instance is not None:
         await _engine_instance.dispose()
         _engine_instance = None
