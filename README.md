@@ -2,7 +2,6 @@
 ### Built by Team JAMA · Squad AI Hackathon 2026
 
 > *"Deals done right, every time"*
-> *"Deals done right, every time"*
 
 ---
 
