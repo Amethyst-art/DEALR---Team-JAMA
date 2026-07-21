@@ -969,6 +969,26 @@ const QUICK_PROMPTS = [
   { label: "Decoration ₦80k",     text: "Event decoration for 150 guests, ₦80,000. Good price?" },
 ];
 
+import React, { useState, useEffect, useRef } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+
+// Ensure your type definitions match your display layer requirements
+interface ChatMsg {
+  type: "user" | "bot";
+  text: string;
+  breakdown?: Record<string, string>;
+  range?: string;
+  valid?: boolean;
+  verdict?: string;
+}
+
+const QUICK_PROMPTS = [
+  { label: "Bridal makeup ₦120k", text: "I want to charge ₦120,000 for bridal makeup for one person at 8am in 2 days. Is that valid?" },
+  { label: "Kaftan ₦35k",          text: "I want to price a senator kaftan with embroidery at ₦35,000. Is that fair?" },
+  { label: "Gate welding ₦65k",   text: "Gate welding 3.5m wide, I want to charge ₦65,000. Too much?" },
+  { label: "Decoration ₦80k",     text: "Event decoration for 150 guests, ₦80,000. Good price?" },
+];
+
 function PricingSection() {
   const [msgs, setMsgs] = useState<ChatMsg[]>([
     { type: "bot", text: "Tell me about the job you want to price. For example: \"I want to charge ₦120,000 for bridal makeup at 8am in 2 days. Is that fair?\"" },
@@ -981,157 +1001,172 @@ function PricingSection() {
     if (msgsRef.current) msgsRef.current.scrollTop = msgsRef.current.scrollHeight;
   }, [msgs, typing]);
 
-  const send = async (text?: string) => {
-    const t = (text || input).trim();
-    if (!t) return;
-    setInput("");
-setMsgs((p) => [...p, { type: "user", text: t }]);
-setTyping(true);
-
-setTimeout(async () => {
-  try {
-    const res = await fetch("http://localhost:5000/ask-ai", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        prompt: `You are Dealr AI, a pricing assistant for Nigerian artisans.
-
-User request: ${t}
-
-Respond with:
-- Verdict (Fair / Too Low / Too High)
-- Reason
-- Suggested price range in naira`
-      })
-    });
-
-    const data = await res.json();
-
-    setMsgs((p) => [
-      ...p,
-      { type: "bot", text: data.reply }
-    ]);
-
-  } catch (err) {
-    setMsgs((p) => [
-      ...p,
-      { type: "bot", text: "⚠️ AI failed. Try again." }
-    ]);
-  } finally {
-    setTyping(false); // ✅ ONLY turn off typing AFTER response
-  }
-}, 900);
-function PricingSection() {
-  const [msgs, setMsgs] = useState<ChatMsg[]>([
-    { type: "bot", text: "Tell me about the job you want to price. For example: \"I want to charge ₦120,000 for bridal makeup at 8am in 2 days. Is that fair?\"" },
-  ]);
-  const [input, setInput] = useState("");
-  const [typing, setTyping] = useState(false);
-  const msgsRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (msgsRef.current) msgsRef.current.scrollTop = msgsRef.current.scrollHeight;
-  }, [msgs, typing]);
+  // Structural String Parser to map the Gemini response block layout cleanly onto card variables
+  const parseGeminiResponse = (reply: string): ChatMsg => {
+    const baseMessage: ChatMsg = { type: "bot", text: reply };
+    try {
+      if (reply.includes("```json")) {
+        const parts = reply.split("```json");
+        const textPart = parts[0].trim();
+        const jsonPart = parts[1].split("```")[0].trim();
+        const data = JSON.parse(jsonPart);
+        
+        return {
+          type: "bot",
+          text: textPart || "Here is your pricing analysis:",
+          breakdown: data.breakdown,
+          range: data.range,
+          valid: data.valid,
+          verdict: data.verdict
+        };
+      }
+    } catch (err) {
+      console.warn("Falling back to flat text layout rendering style:", err);
+    }
+    return baseMessage;
+  };
 
   const send = async (text?: string) => {
     const t = (text || input).trim();
     if (!t) return;
+    
     setInput("");
-setMsgs((p) => [...p, { type: "user", text: t }]);
-setTyping(true);
+    setMsgs((p) => [...p, { type: "user", text: t }]);
+    setTyping(true);
 
-setTimeout(async () => {
-  try {
-    const res = await fetch("http://localhost:5000/ask-ai", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        prompt: `You are Dealr AI, a pricing assistant for Nigerian artisans.
+    try {
+      
+      const res = await fetch("http://localhost:5000/ask-ai", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ prompt: t })
+      });
 
-User request: ${t}
+      if (!res.ok) throw new Error("API call network fault indicator");
+      const data = await res.json();
 
-Respond with:
-- Verdict (Fair / Too Low / Too High)
-- Reason
-- Suggested price range in naira`
-      })
-    });
+      if (data.success && data.reply) {
+        const processedBotMsg = parseGeminiResponse(data.reply);
+        setMsgs((p) => [...p, processedBotMsg]);
+      } else {
+        throw new Error(data.error || "Empty data payload returned");
+      }
 
-    const data = await res.json();
+    } catch (err) {
+      console.error("Connection Error Trace:", err);
+      setMsgs((p) => [
+        ...p,
+        { type: "bot", text: "⚠️ Unable to connect to the Price Advisor backend. Check if terminal port 5000 is running." }
+      ]);
+    } finally {
+      setTyping(false); // Turns off loading animation only when completely finalized
+    }
+  };
 
-    setMsgs((p) => [
-      ...p,
-      { type: "bot", text: data.reply }
-    ]);
+  return (
+    <motion.div {...fadeUp}>
+      <div style={{ marginBottom: 24 }}>
+        <div className="syne" style={{ fontSize: 26, fontWeight: 700, color: T.t1, letterSpacing: "-0.02em", marginBottom: 6 }}>Price Advisor</div>
+        <div style={{ fontSize: 14, color: T.t2 }}>Describe your job and proposed price. I'll verify it against the Nigerian market.</div>
+      </div>
 
-  } catch (err) {
-    setMsgs((p) => [
-      ...p,
-      { type: "bot", text: "⚠️ AI failed. Try again." }
-    ]);
-  } finally {
-    setTyping(false); // ✅ ONLY turn off typing AFTER response
-  }
-}, 900);
-function PricingSection() {
-  const [msgs, setMsgs] = useState<ChatMsg[]>([
-    { type: "bot", text: "Tell me about the job you want to price. For example: \"I want to charge ₦120,000 for bridal makeup at 8am in 2 days. Is that fair?\"" },
-  ]);
-  const [input, setInput] = useState("");
-  const [typing, setTyping] = useState(false);
-  const msgsRef = useRef<HTMLDivElement>(null);
+      <Card style={{ display: "flex", flexDirection: "column", height: 560, padding: 0 }}>
+        {/* Header */}
+        <div style={{ padding: "16px 20px", borderBottom: `1px solid ${T.bdr}`, display: "flex", alignItems: "center", gap: 12 }}>
+          <div style={{ width: 36, height: 36, borderRadius: 10, background: T.goldl, border: `1px solid ${T.gold}30`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <span style={{ fontSize: 16 }}>◈</span>
+          </div>
+          <div>
+            <div style={{ fontSize: 14, fontWeight: 600, color: T.t1 }}>Dealr Price Advisor</div>
+            <div style={{ fontSize: 12, color: T.green, display: "flex", alignItems: "center", gap: 5 }}>
+              <span style={{ width: 6, height: 6, borderRadius: "50%", background: T.green, display: "inline-block", animation: "pulse 2s infinite" }} />
+              Gemini AI · Online
+            </div>
+          </div>
+        </div>
 
-  useEffect(() => {
-    if (msgsRef.current) msgsRef.current.scrollTop = msgsRef.current.scrollHeight;
-  }, [msgs, typing]);
+        {/* Messages */}
+        <div ref={msgsRef} style={{ flex: 1, overflowY: "auto", padding: "20px", display: "flex", flexDirection: "column", gap: 14 }}>
+          <AnimatePresence initial={false}>
+            {msgs.map((m, i) => (
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.25 }}
+                style={{ maxWidth: "80%", alignSelf: m.type === "user" ? "flex-end" : "flex-start", display: "flex", flexDirection: "column", gap: 6, alignItems: m.type === "user" ? "flex-end" : "flex-start" }}
+              >
+                <div style={{
+                  padding: "11px 14px", fontSize: 13.5, lineHeight: 1.6,
+                  borderRadius: m.type === "user" ? "14px 14px 4px 14px" : "14px 14px 14px 4px",
+                  background: m.type === "user" ? `linear-gradient(135deg, ${T.gold}, ${T.goldd})` : T.surf2,
+                  color: m.type === "user" ? "#0B0F17" : T.t1,
+                  border: m.type === "bot" ? `1px solid ${T.bdr}` : "none",
+                }}>{m.text}</div>
+                
+                {m.breakdown && (
+                  <div style={{ background: T.surf2, border: `1px solid ${T.bdr}`, borderRadius: 10, padding: 14, width: "100%", maxWidth: 300 }}>
+                    {Object.entries(m.breakdown).map(([k, v]) => (
+                      <div key={k} style={{ display: "flex", justifyContent: "space-between", padding: "4px 0", fontSize: 12, color: T.t2, borderBottom: `1px solid ${T.bdr}` }}>
+                        <span>{k}</span>
+                        <span className="mono" style={{ color: T.t1 }}>{v}</span>
+                      </div>
+                    ))}
+                    <div style={{ display: "flex", justifyContent: "space-between", padding: "8px 0 0", fontWeight: 600, fontSize: 12, color: T.t1 }}>
+                      <span>Market range</span>
+                      <span className="mono" style={{ color: T.gold }}>{m.range}</span>
+                    </div>
+                    <div style={{ marginTop: 10 }}>
+                      <Badge variant={m.valid ? "green" : "red"}>{m.valid ? "✓ Fair Price" : "⚠ Adjust Price"} — {m.verdict}</Badge>
+                    </div>
+                  </div>
+                )}
+                <div style={{ fontSize: 10, color: T.t3 }}>Just now</div>
+              </motion.div>
+            ))}
+          </AnimatePresence>
 
-  const send = async (text?: string) => {
-    const t = (text || input).trim();
-    if (!t) return;
-    setInput("");
-setMsgs((p) => [...p, { type: "user", text: t }]);
-setTyping(true);
+          {typing && (
+            <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} style={{ display: "flex", gap: 5, padding: "12px 14px", background: T.surf2, border: `1px solid ${T.bdr}`, borderRadius: "14px 14px 14px 4px", width: "fit-content" }}>
+              {[0, 1, 2].map((i) => (
+                <div key={i} style={{ width: 7, height: 7, borderRadius: "50%", background: T.t3, animation: "pulse 1s infinite", animationDelay: `${i * 0.15}s` }} />
+              ))}
+            </motion.div>
+          )}
+        </div>
 
-setTimeout(async () => {
-  try {
-    const res = await fetch("http://localhost:5000/ask-ai", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        prompt: `You are Dealr AI, a pricing assistant for Nigerian artisans.
+        {/* Quick chips */}
+        <div style={{ padding: "0 16px 12px", display: "flex", gap: 6, flexWrap: "wrap" }}>
+          {QUICK_PROMPTS.map((q) => (
+            <motion.button key={q.label} whileTap={{ scale: 0.96 }} onClick={() => send(q.text)} style={{
+              fontSize: 11, padding: "5px 12px", background: T.goldl, color: T.gold,
+              borderRadius: 20, border: `1px solid ${T.gold}30`, cursor: "pointer",
+              fontFamily: "'DM Sans', sans-serif", fontWeight: 500,
+            }}>{q.label}</motion.button>
+          ))}
+        </div>
 
-User request: ${t}
+        {/* Input */}
+        <div style={{ padding: "12px 16px", borderTop: `1px solid ${T.bdr}`, display: "flex", gap: 8, alignItems: "center" }}>
+          <input
+            value={input} onChange={(e) => setInput(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && send()}
+            placeholder="Describe your job and proposed price..."
+            style={{ flex: 1, padding: "10px 14px", border: `1px solid ${T.bdr2}`, borderRadius: 30, fontSize: 13.5, fontFamily: "inherit", color: T.t1, background: T.surf2, outline: "none" }}
+          />
+          <motion.button whileTap={{ scale: 0.92 }} onClick={() => send()} style={{ width: 38, height: 38, borderRadius: "50%", background: `linear-gradient(135deg, ${T.gold}, ${T.goldd})`, border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0B0F17" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13" /><polygon points="22 2 15 22 11 13 2 9 22 2" /></svg>
+          </motion.button>
+        </div>
+      </Card>
+    </motion.div>
+  );
+}
 
-Respond with:
-- Verdict (Fair / Too Low / Too High)
-- Reason
-- Suggested price range in naira`
-      })
-    });
+export default PricingSection;
 
-    const data = await res.json();
-
-    setMsgs((p) => [
-      ...p,
-      { type: "bot", text: data.reply }
-    ]);
-
-  } catch (err) {
-    setMsgs((p) => [
-      ...p,
-      { type: "bot", text: "⚠️ AI failed. Try again." }
-    ]);
-  } finally {
-    setTyping(false); // ✅ ONLY turn off typing AFTER response
-  }
-}, 900);
-};
 
   return (
     <motion.div {...fadeUp}>
