@@ -12,43 +12,55 @@ app.post("/ask-ai", async (req, res) => {
   try {
     const { prompt } = req.body;
 
-    
     if (!process.env.GEMINI_API_KEY) {
       return res.status(500).json({ success: false, error: "Missing GEMINI_API_KEY inside environment configuration." });
     }
 
-   
-    const cleanApiKey = process.env.GEMINI_API_KEY.replace(/["'\s]/g, "");
+    const cleanApiKey = process.env.GEMINI_API_KEY.trim();
 
+    // Alternate direct connection route to bypass client constructor authentication drops
+    const targetUrl = `https://googleapis.com{cleanApiKey}`;
     
-    const ai = new GoogleGenAI({ apiKey: cleanApiKey });
+    const response = await fetch(targetUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        contents: [{
+          parts: [{
+            text: `You are the Dealr Price Advisor specializing in the Nigerian freelance artisan market. 
+            Analyze the requested trade transaction. Give your brief conversational summary text analysis. 
+            At the absolute end of your response, you MUST output a raw JSON block formatted EXACTLY like this layout framework:
 
-    
-    const response = await ai.models.generateContent({
-      model: "gemini-3.5-flash",
-      contents: `You are the Dealr Price Advisor specializing in the Nigerian freelance artisan market. 
-      Analyze the requested trade transaction. Give your brief conversational summary text analysis. 
-      At the absolute end of your response, you MUST output a raw JSON block formatted EXACTLY like this layout framework:
+            \`\`\`json
+            {
+              "breakdown": {
+                "Base Service Cost": "₦15,000",
+                "Logistics/Markup": "₦5,000"
+              },
+              "range": "₦15,000 - ₦25,000",
+              "valid": true,
+              "verdict": "Fair Price"
+            }
+            \`\`\`
 
-      \`\`\`json
-      {
-        "breakdown": {
-          "Base Service Cost": "₦45,000",
-          "Material Requirements": "₦25,000",
-          "Logistics/Markup": "₦10,000"
-        },
-        "range": "₦75,000 - ₦90,000",
-        "valid": true,
-        "verdict": "Fair Price"
-      }
-      \`\`\`
-
-      User requested transaction details: ${prompt}`,
+            User requested transaction details: ${prompt}`
+          }]
+        }]
+      })
     });
 
-    res.json({ 
+    const data = await response.json();
+    
+    if (data.error) {
+      throw new Error(JSON.stringify(data.error));
+    }
+
+    const aiResponseText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+    res.json({
       success: true,
-      reply: response.text 
+      reply: aiResponseText || "No response generated."
     });
 
   } catch (err) {
