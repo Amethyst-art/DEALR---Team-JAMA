@@ -1,9 +1,7 @@
 /**
  * Dealr.tsx — Full App 
  *
- * SETUP IN GITHUB CODESPACE:
- *   npm install framer-motion
- *   (Tailwind not required — all styles are inline/CSS vars)
+
  *
  * BACKEND INTEGRATION NOTES are at the bottom of this file as comments.
  */
@@ -983,23 +981,157 @@ function PricingSection() {
     if (msgsRef.current) msgsRef.current.scrollTop = msgsRef.current.scrollHeight;
   }, [msgs, typing]);
 
-  const send = (text?: string) => {
+  const send = async (text?: string) => {
     const t = (text || input).trim();
     if (!t) return;
     setInput("");
-    setMsgs((p) => [...p, { type: "user", text: t }]);
-    setTyping(true);
-    setTimeout(() => {
-      setTyping(false);
-      const job = detectJob(t);
-      if (job) {
-        const r = PRICE_RESPONSES[job];
-        setMsgs((p) => [...p, { type: "bot", text: r.note, breakdown: r.breakdown, range: r.range, valid: r.valid, verdict: r.verdict }]);
-      } else {
-        setMsgs((p) => [...p, { type: "bot", text: "Tell me the job type and your proposed price, and I'll verify if it's fair for the Nigerian market. Example: \"I want to charge ₦50,000 for X — is that right?\"" }]);
-      }
-    }, 1500);
-  };
+setMsgs((p) => [...p, { type: "user", text: t }]);
+setTyping(true);
+
+setTimeout(async () => {
+  try {
+    const res = await fetch("http://localhost:5000/ask-ai", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        prompt: `You are Dealr AI, a pricing assistant for Nigerian artisans.
+
+User request: ${t}
+
+Respond with:
+- Verdict (Fair / Too Low / Too High)
+- Reason
+- Suggested price range in naira`
+      })
+    });
+
+    const data = await res.json();
+
+    setMsgs((p) => [
+      ...p,
+      { type: "bot", text: data.reply }
+    ]);
+
+  } catch (err) {
+    setMsgs((p) => [
+      ...p,
+      { type: "bot", text: "⚠️ AI failed. Try again." }
+    ]);
+  } finally {
+    setTyping(false); // ✅ ONLY turn off typing AFTER response
+  }
+}, 900);
+function PricingSection() {
+  const [msgs, setMsgs] = useState<ChatMsg[]>([
+    { type: "bot", text: "Tell me about the job you want to price. For example: \"I want to charge ₦120,000 for bridal makeup at 8am in 2 days. Is that fair?\"" },
+  ]);
+  const [input, setInput] = useState("");
+  const [typing, setTyping] = useState(false);
+  const msgsRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (msgsRef.current) msgsRef.current.scrollTop = msgsRef.current.scrollHeight;
+  }, [msgs, typing]);
+
+  const send = async (text?: string) => {
+    const t = (text || input).trim();
+    if (!t) return;
+    setInput("");
+setMsgs((p) => [...p, { type: "user", text: t }]);
+setTyping(true);
+
+setTimeout(async () => {
+  try {
+    const res = await fetch("http://localhost:5000/ask-ai", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        prompt: `You are Dealr AI, a pricing assistant for Nigerian artisans.
+
+User request: ${t}
+
+Respond with:
+- Verdict (Fair / Too Low / Too High)
+- Reason
+- Suggested price range in naira`
+      })
+    });
+
+    const data = await res.json();
+
+    setMsgs((p) => [
+      ...p,
+      { type: "bot", text: data.reply }
+    ]);
+
+  } catch (err) {
+    setMsgs((p) => [
+      ...p,
+      { type: "bot", text: "⚠️ AI failed. Try again." }
+    ]);
+  } finally {
+    setTyping(false); // ✅ ONLY turn off typing AFTER response
+  }
+}, 900);
+function PricingSection() {
+  const [msgs, setMsgs] = useState<ChatMsg[]>([
+    { type: "bot", text: "Tell me about the job you want to price. For example: \"I want to charge ₦120,000 for bridal makeup at 8am in 2 days. Is that fair?\"" },
+  ]);
+  const [input, setInput] = useState("");
+  const [typing, setTyping] = useState(false);
+  const msgsRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (msgsRef.current) msgsRef.current.scrollTop = msgsRef.current.scrollHeight;
+  }, [msgs, typing]);
+
+  const send = async (text?: string) => {
+    const t = (text || input).trim();
+    if (!t) return;
+    setInput("");
+setMsgs((p) => [...p, { type: "user", text: t }]);
+setTyping(true);
+
+setTimeout(async () => {
+  try {
+    const res = await fetch("http://localhost:5000/ask-ai", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        prompt: `You are Dealr AI, a pricing assistant for Nigerian artisans.
+
+User request: ${t}
+
+Respond with:
+- Verdict (Fair / Too Low / Too High)
+- Reason
+- Suggested price range in naira`
+      })
+    });
+
+    const data = await res.json();
+
+    setMsgs((p) => [
+      ...p,
+      { type: "bot", text: data.reply }
+    ]);
+
+  } catch (err) {
+    setMsgs((p) => [
+      ...p,
+      { type: "bot", text: "⚠️ AI failed. Try again." }
+    ]);
+  } finally {
+    setTyping(false); // ✅ ONLY turn off typing AFTER response
+  }
+}, 900);
+};
 
   return (
     <motion.div {...fadeUp}>
