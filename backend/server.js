@@ -18,8 +18,9 @@ app.post("/ask-ai", async (req, res) => {
 
     const cleanApiKey = process.env.GEMINI_API_KEY.trim();
 
-    // Alternate direct connection route to bypass client constructor authentication drops
-    const targetUrl = `https://googleapis.com{cleanApiKey}`;
+    
+    const targetUrl = `https://googleapis.com{cleanApiKey}`; 
+;
     
     const response = await fetch(targetUrl, {
       method: "POST",
@@ -66,6 +67,51 @@ app.post("/ask-ai", async (req, res) => {
   } catch (err) {
     console.error("Gemini Failure Logs:", err);
     res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+const axios = require("axios");
+
+// Get Monnify access token
+async function getMonnifyToken() {
+  const credentials = Buffer.from(
+    `${process.env.MONNIFY_API_KEY}:${process.env.MONNIFY_SECRET_KEY}`
+  ).toString("base64");
+
+  const res = await axios.post(
+    "https://sandbox.monnify.com/api/v1/auth/login",
+    {},
+    { headers: { Authorization: `Basic ${credentials}` } }
+  );
+  return res.data.responseBody.accessToken;
+}
+
+// Initiate payment
+app.post("/pay", async (req, res) => {
+  try {
+    const token = await getMonnifyToken();
+    const { amount, email, jobId } = req.body;
+
+    const response = await axios.post(
+      "https://sandbox.monnify.com/api/v1/merchant/transactions/init-transaction",
+      {
+        amount,
+        customerName: "Dealr Client",
+        customerEmail: email,
+        paymentReference: `DEALR-${jobId}-${Date.now()}`,
+        paymentDescription: "Dealr Job Payment",
+        currencyCode: "NGN",
+        contractCode: process.env.MONNIFY_CONTRACT_CODE,
+        redirectUrl: "http://localhost:5173/payment-success",
+        paymentMethods: ["CARD", "ACCOUNT_TRANSFER", "BANK"],
+      },
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+
+    res.json({ checkoutUrl: response.data.responseBody.checkoutUrl });
+  } catch (err) {
+    console.error(err.response?.data || err.message);
+    res.status(500).json({ error: "Payment initiation failed" });
   }
 });
 
