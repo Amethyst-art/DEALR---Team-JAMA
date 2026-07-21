@@ -1036,7 +1036,7 @@ function PricingSection() {
 
     try {
       
-      const res = await fetch("https://glowing-cod-gg7659j566vf9557-5000.app.github.dev/, {
+      const res = await fetch("https://glowing-cod-gg7659j566vf9557-5000.app.github.dev/", {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
