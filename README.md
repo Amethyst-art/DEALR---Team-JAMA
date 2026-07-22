@@ -104,7 +104,7 @@ npm install
 
 # Add your environment variables
 cp .env.example .env
-# Fill in: ANTHROPIC_API_KEY, SQUAD_API_KEY
+# Fill in: GEMINI_API_KEY, MONNIFY_API_KEY
 
 # Run the pricing test
 node test.js
