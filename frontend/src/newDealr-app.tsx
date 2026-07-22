@@ -904,7 +904,7 @@ function JobRow({ desc, meta, amt, st, onClick }: JobItem & { onClick?: () => vo
   );
 }
 
-// ─── AI PRICING DATA (mock — replace with Claude API calls) ─────────────────
+// ─── AI PRICING DATA ─────────────────
 type JobType = "makeup" | "kaftan" | "gate" | "decoration";
 
 interface PriceResponse {
