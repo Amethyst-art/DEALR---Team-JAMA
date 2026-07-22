@@ -524,7 +524,7 @@ function AuthPage({ onLogin }: { onLogin: (r: Role, email: string) => void }) {
         >
           Deals done right, Every time.
           <br />
-          For every <span style={{ color: T.gold, textTransform: "lowercase" }}>{rotatingWords[wordIndex]}</span> in Nigeria.
+          For every <span style={{ color: T.gold, textTransform: "lowercase" }}>{rotatingWords[wordIndex]}</span>.
         </div>
 
         <motion.div
