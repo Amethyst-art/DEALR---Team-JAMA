@@ -1,7 +1,5 @@
 /**
- * Dealr.tsx — Full App 
- *
-
+ * Dealr.tsx — Full App
  *
  * BACKEND INTEGRATION NOTES are at the bottom of this file as comments.
  */
@@ -34,7 +32,6 @@ const T = {
   t2:  "#8891A8",
   t3:  "#4A5268",
 
-  // Subtle gradient accent
   accent: "linear-gradient(135deg, #D4A853 0%, #A07830 100%)",
 };
 
@@ -55,7 +52,6 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* Subtle noise texture */
 body::before {
   content: '';
   position: fixed;
@@ -68,7 +64,6 @@ body::before {
   opacity: 0.4;
 }
 
-/* Warm ambient glow */
 body::after {
   content: '';
   position: fixed;
@@ -411,6 +406,7 @@ function Sidebar({ role, active, onNav, onLogout }: { role: Role; active: Sectio
                 border: "none", cursor: "pointer",
                 fontFamily: "'DM Sans', sans-serif",
                 textAlign: "left", transition: "color 0.15s, background 0.15s",
+                position: "relative",
               }}
             >
               <span style={{ fontSize: 14, opacity: isActive ? 1 : 0.6 }}>{item.icon}</span>
@@ -454,7 +450,6 @@ function AuthPage({ onLogin }: { onLogin: (r: Role, email: string) => void }) {
   const [email, setEmail] = useState("");
   const [pass, setPass] = useState("");
 
-  // Rotating words hooks and variables
   const rotatingWords = ["artisan", "entrepreneur", "creative", "innovator"];
   const [wordIndex, setWordIndex] = useState(0);
 
@@ -467,36 +462,14 @@ function AuthPage({ onLogin }: { onLogin: (r: Role, email: string) => void }) {
 
   const features = [
     "AI-verified market pricing",
-    "Squad escrow — pay only after delivery",
+    "Monnify escrow — pay only after delivery",
     "Multi-currency withdrawal",
     "Live bidding on open jobs",
   ];
 
   return (
-    // Base Parent Container configuration
     <div style={{ display: "flex", minHeight: "100vh", position: "relative", overflow: "hidden" }}>
-      
-      {/* Animated Africa SVG Background Layer (Framer Motion Enhanced) */}
-      <motion.div 
-        initial={{ opacity: 0, scale: 0.92, rotate: -12 }}
-        animate={{ opacity: 0.08, scale: 1, rotate: -8 }}
-        transition={{ duration: 1.2, ease: "easeOut", delay: 0.1 }}
-        style={{ 
-          position: "absolute", 
-          bottom: "-140px", 
-          left: "-120px", 
-          width: "420px", 
-          height: "420px", 
-          backgroundImage: "url('/workspaces/DEALR---Team-JAMA/frontend/public/Outlined%20Image%20with%20Negative%20Space.svg')", 
-          backgroundRepeat: "no-repeat", 
-          backgroundSize: "contain", 
-          zIndex: 0, 
-          pointerEvents: "none",
-          transformOrigin: "bottom left" // Anchors rotation cleanly to the corner pivot
-        }} 
-      />
-
-      {/* Left panel wrapper - zIndex: 2 */}
+      {/* Left panel */}
       <motion.div
         initial={{ opacity: 0, x: -30 }}
         animate={{ opacity: 1, x: 0 }}
@@ -513,7 +486,6 @@ function AuthPage({ onLogin }: { onLogin: (r: Role, email: string) => void }) {
           zIndex: 2,
         }}
       >
-        {/* Ambient circle */}
         <div
           style={{
             position: "absolute",
@@ -526,8 +498,7 @@ function AuthPage({ onLogin }: { onLogin: (r: Role, email: string) => void }) {
             pointerEvents: "none",
           }}
         />
-        
-        {/* Logo Layer */}
+
         <div
           className="syne"
           style={{
@@ -542,7 +513,6 @@ function AuthPage({ onLogin }: { onLogin: (r: Role, email: string) => void }) {
           Deal<span style={{ color: T.gold }}>r.</span>
         </div>
 
-        {/* Subheadline with rotating text injection */}
         <div
           style={{
             fontSize: 16,
@@ -603,11 +573,11 @@ function AuthPage({ onLogin }: { onLogin: (r: Role, email: string) => void }) {
             letterSpacing: "0.04em",
           }}
         >
-          Powered by Squad API
+          Powered by Monnify
         </div>
       </motion.div>
 
-      {/* Right panel / Login Card wrapper - zIndex: 2 */}
+      {/* Right panel / Login Card */}
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -640,7 +610,6 @@ function AuthPage({ onLogin }: { onLogin: (r: Role, email: string) => void }) {
           <div style={{ fontSize: 14, color: T.t2, marginBottom: 32 }}>
             Dealr.
           </div>
-          {/* Role toggle */}
           <div
             style={{
               display: "flex",
@@ -695,7 +664,7 @@ function AuthPage({ onLogin }: { onLogin: (r: Role, email: string) => void }) {
             onClick={() => onLogin(role, email)}
             style={{ marginBottom: 16, marginTop: 4 }}
           >
-            Continue{" "}
+            Continue
           </BtnPrimary>
           <div style={{ textAlign: "center", fontSize: 13, color: T.t3 }}>
             No account?{" "}
@@ -761,7 +730,6 @@ function OnboardingPage({ role, onComplete }: { role: Role; onComplete: () => vo
         </div>
         <div style={{ fontSize: 14, color: T.t2, textAlign: "center", marginBottom: 36 }}>Let's set up your profile</div>
 
-        {/* Progress */}
         <div style={{ display: "flex", gap: 6, marginBottom: 36 }}>
           {steps.map((s, i) => (
             <div key={s} style={{ flex: 1 }}>
@@ -801,11 +769,9 @@ function OnboardingPage({ role, onComplete }: { role: Role; onComplete: () => vo
 // ─── DASHBOARD ───────────────────────────────────────────────────────────────
 function DashboardSection({ role, onNav }: { role: Role; onNav: (s: Section) => void }) {
   const isArtisan = role === "artisan";
-  
-  
+
   const [userName, setUserName] = useState(isArtisan ? "Kehinde" : "Bola");
 
-  
   useEffect(() => {
     setUserName(isArtisan ? "Kehinde" : "Bola");
   }, [role, isArtisan]);
@@ -818,7 +784,6 @@ function DashboardSection({ role, onNav }: { role: Role; onNav: (s: Section) => 
 
   return (
     <motion.div variants={stagger} initial="initial" animate="animate">
-      {/* Header */}
       <motion.div variants={itemFade} style={{ marginBottom: 32 }}>
         <div className="syne" style={{ fontSize: 28, fontWeight: 700, color: T.t1, letterSpacing: "-0.02em", marginBottom: 4 }}>
           {`Good morning, ${userName} 👋`}
@@ -828,7 +793,6 @@ function DashboardSection({ role, onNav }: { role: Role; onNav: (s: Section) => 
         </div>
       </motion.div>
 
-      {/* Stats */}
       <motion.div variants={itemFade} style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 14, marginBottom: 24 }}>
         {isArtisan ? (
           <>
@@ -845,7 +809,6 @@ function DashboardSection({ role, onNav }: { role: Role; onNav: (s: Section) => 
         )}
       </motion.div>
 
-      {/* CTA row */}
       <motion.div variants={itemFade} style={{ display: "flex", gap: 10, marginBottom: 28 }}>
         {isArtisan ? (
           <>
@@ -861,7 +824,6 @@ function DashboardSection({ role, onNav }: { role: Role; onNav: (s: Section) => 
         )}
       </motion.div>
 
-      {/* Recent jobs */}
       <motion.div variants={itemFade}>
         <div style={{ fontSize: 13, fontWeight: 600, color: T.t2, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 14 }}>Recent Jobs</div>
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
@@ -904,24 +866,78 @@ function JobRow({ desc, meta, amt, st, onClick }: JobItem & { onClick?: () => vo
   );
 }
 
-// ─── AI PRICING DATA  ─────────────────
 // ─── BACKEND URL (auto-detects Codespace vs local) ───────────────────────────
+// NOTE: kept as a dynamic detector rather than a single hardcoded string.
+// "https://github.dev" by itself is not a callable API host — it's just the
+// root domain GitHub uses for the Codespaces web editor, not your forwarded
+// port. Your real API base looks like:
+//   https://<codespace-name>-5000.app.github.dev
+// If you want to force a specific URL (e.g. for local testing against a
+// deployed backend), set VITE_BACKEND_URL in a .env file and it will be used
+// automatically — otherwise this falls back to auto-detecting the Codespaces
+// forwarded-port hostname, or localhost:5000 when running locally.
 const BACKEND_URL = (() => {
+  const envUrl = (import.meta as any)?.env?.VITE_BACKEND_URL;
+  if (envUrl) return envUrl as string;
+
   if (typeof window !== "undefined") {
     const host = window.location.hostname;
-
     if (host.includes(".app.github.dev")) {
-      return window.location.origin.replace("-5173.", "-5000.");
-    }
-    if (host.includes(".preview.app.github.dev")) {
-      return window.location.origin.replace("-5173.", "-5000.");
+      // Forwarded Codespaces ports follow the pattern
+      // <codespace-name>-<port>.app.github.dev — swap the frontend's
+      // forwarded port (5173, Vite's default) for the backend's (5000).
+      return window.location.origin.replace(/-\d+\.(preview\.)?app\.github\.dev/, "-5000.app.github.dev");
     }
   }
   return "http://localhost:5000";
 })();
 
+// ─── PAYMENTS (Monnify) ───────────────────────────────────────────────────────
+// Checkout flow: client is paying a job amount into escrow. Backend creates
+// the Monnify transaction and returns a checkoutUrl; we redirect the browser
+// there to complete payment on Monnify's hosted page.
+async function payWithMonnify(amount: number, email: string, jobId: string): Promise<void> {
+  const res = await fetch(`${BACKEND_URL}/pay`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ amount, email, jobId }),
+  });
+
+  if (!res.ok) throw new Error(`Server responded ${res.status}`);
+
+  const data = await res.json();
+  if (!data.checkoutUrl) throw new Error("No checkoutUrl returned");
+
+  window.location.href = data.checkoutUrl;
+}
+
+// Payout flow: releasing escrow to an artisan, or withdrawing to a bank
+// account. This does NOT redirect — Monnify's disbursement API responds
+// synchronously (or via webhook), so we just report success/failure.
+async function initiatePayout(amount: number, jobId: string): Promise<{ ok: boolean; message: string }> {
+  try {
+    const res = await fetch(`${BACKEND_URL}/payout`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ amount, jobId }),
+    });
+
+    if (!res.ok) throw new Error(`Server responded ${res.status}`);
+
+    const data = await res.json();
+    return { ok: true, message: data.message || "Payout initiated" };
+  } catch {
+    return { ok: false, message: "Payout failed — please try again" };
+  }
+}
+
 // ─── AI RESPONSE PARSER ──────────────────────────────────────────────────────
+// Robust against LLM replies that come back as: a plain paragraph, a plain
+// JSON object, or a paragraph followed by a ```json ... ``` fenced block.
+// Never throws — returns null if nothing parseable is found so the caller
+// can show a friendly fallback message instead of crashing.
 interface ParsedAIResponse {
+  chatText: string;
   verdict: string;
   valid: boolean;
   range: string;
@@ -932,28 +948,37 @@ interface ParsedAIResponse {
 function parseAIResponse(raw: string): ParsedAIResponse | null {
   if (!raw || typeof raw !== "string") return null;
 
-  let cleaned = raw
-    .replace(/```json/gi, "")
-    .replace(/```/g, "")
-    .trim();
+  let jsonStr = "";
+  let chatText = raw.trim();
 
-  const start = cleaned.indexOf("{");
-  const end = cleaned.lastIndexOf("}");
-  if (start === -1 || end === -1) return null;
+  // Prefer an explicit ```json ... ``` fence if present.
+  const fenceMatch = raw.match(/```json\s*([\s\S]*?)```/i);
+  if (fenceMatch) {
+    jsonStr = fenceMatch[1].trim();
+    chatText = raw.slice(0, fenceMatch.index).trim();
+  } else {
+    // Fall back to the outermost { ... } block anywhere in the string.
+    const start = raw.indexOf("{");
+    const end = raw.lastIndexOf("}");
+    if (start !== -1 && end !== -1 && end > start) {
+      jsonStr = raw.slice(start, end + 1);
+      chatText = raw.slice(0, start).trim();
+    }
+  }
+
+  if (!jsonStr) return null;
 
   try {
-    const parsed = JSON.parse(cleaned.slice(start, end + 1));
-
-    if (!parsed.verdict || !parsed.range || !parsed.breakdown || !parsed.note) {
-      return null;
-    }
+    const parsed = JSON.parse(jsonStr);
+    if (!parsed.verdict || !parsed.range || !parsed.breakdown) return null;
 
     return {
+      chatText: chatText || String(parsed.note || parsed.verdict),
       verdict: String(parsed.verdict),
       valid: Boolean(parsed.valid),
       range: String(parsed.range),
       breakdown: parsed.breakdown || {},
-      note: String(parsed.note),
+      note: String(parsed.note || ""),
     };
   } catch {
     return null;
@@ -1014,12 +1039,8 @@ function TypingDots() {
 // ─── PRICING SECTION ─────────────────────────────────────────────────────────
 function PricingSection() {
   const [msgs, setMsgs] = useState<ChatMsg[]>([
-    {
-      type: "bot",
-      text: 'Tell me about the job you want to price.',
-    },
+    { type: "bot", text: "Tell me about the job you want to price." },
   ]);
-
   const [input, setInput] = useState("");
   const [typing, setTyping] = useState(false);
   const msgsRef = useRef<HTMLDivElement>(null);
@@ -1045,6 +1066,8 @@ function PricingSection() {
         body: JSON.stringify({ prompt: t }),
       });
 
+      if (!res.ok) throw new Error(`Server responded ${res.status}`);
+
       const data = await res.json();
       const parsed = parseAIResponse(data.reply);
 
@@ -1054,7 +1077,7 @@ function PricingSection() {
         ...p,
         {
           type: "bot",
-          text: parsed.verdict,
+          text: parsed.chatText,
           breakdown: parsed.breakdown,
           range: parsed.range,
           valid: parsed.valid,
@@ -1064,26 +1087,12 @@ function PricingSection() {
     } catch {
       setMsgs((p) => [
         ...p,
-        {
-          type: "bot",
-          text: "Something went wrong. Try again.",
-        },
+        { type: "bot", text: "Something went wrong. Try again." },
       ]);
     } finally {
       setTyping(false);
     }
   };
-
-  return (
-    <div>
-      {/* KEEP YOUR EXISTING UI BELOW — DO NOT CHANGE */}
-    </div>
-  );
-}
-
-
-export default PricingSection;
-
 
   return (
     <motion.div {...fadeUp}>
@@ -1102,7 +1111,7 @@ export default PricingSection;
             <div style={{ fontSize: 14, fontWeight: 600, color: T.t1 }}>Dealr Price Advisor</div>
             <div style={{ fontSize: 12, color: T.green, display: "flex", alignItems: "center", gap: 5 }}>
               <span style={{ width: 6, height: 6, borderRadius: "50%", background: T.green, display: "inline-block", animation: "pulse 2s infinite" }} />
-              Claude AI · Online
+              Gemini AI · Online
             </div>
           </div>
         </div>
@@ -1147,13 +1156,7 @@ export default PricingSection;
             ))}
           </AnimatePresence>
 
-          {typing && (
-            <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} style={{ display: "flex", gap: 5, padding: "12px 14px", background: T.surf2, border: `1px solid ${T.bdr}`, borderRadius: "14px 14px 14px 4px", width: "fit-content" }}>
-              {[0, 1, 2].map((i) => (
-                <div key={i} style={{ width: 7, height: 7, borderRadius: "50%", background: T.t3, animation: "pulse 1s infinite", animationDelay: `${i * 0.15}s` }} />
-              ))}
-            </motion.div>
-          )}
+          {typing && <TypingDots />}
         </div>
 
         {/* Quick chips */}
@@ -1190,6 +1193,7 @@ function JobsSection({ role, showToast }: { role: Role; showToast: ToastFn }) {
   const [jobDesc, setJobDesc] = useState("");
   const [generating, setGenerating] = useState(false);
   const [showOutput, setShowOutput] = useState(false);
+  const [payingOut, setPayingOut] = useState<string | null>(null);
   const isArtisan = role === "artisan";
 
   const jobs: JobItem[] = [
@@ -1239,170 +1243,189 @@ function JobsSection({ role, showToast }: { role: Role; showToast: ToastFn }) {
           <div style={{ fontWeight: 600, color: T.t3, marginBottom: 8, fontSize: 11, textTransform: "uppercase", letterSpacing: "0.05em" }}>Auto-Generated Agreement</div>
           — Artisan agrees to complete the described job.<br />
           — Delivery within 4 days of payment confirmation.<br />
-          — ₦21,000 held in Squad escrow until delivery confirmed.<br />
+          — ₦21,000 held in escrow until delivery confirmed.<br />
           — Either party may raise a dispute within 48 hours of delivery.
         </div>
 
-        <BtnPrimary onClick={() => { setShowOutput(false); showToast("Job sent to client successfully"); }}>
+        <BtnPrimary
+          loading={payingOut === "checkout"}
+          onClick={async () => {
+            setPayingOut("checkout");
+            try {
+              // TODO: replace with the real client email once auth wiring is in place.
+              await payWithMonnify(21000, "client@example.com", `JOB_${Date.now()}`);
+              // payWithMonnify redirects the browser on success — no further
+              // code here runs unless it throws.
+            } catch {
+              showToast("Could not start checkout — please try again");
+            } finally {
+              setPayingOut(null);
+            }
+          }}
+        >
           Confirm & Send to Client →
         </BtnPrimary>
-        <div style={{ textAlign: "center", marginTop: 10, fontSize: 12, color: T.t3 }}>Client receives a secure Squad payment link</div>
+        <div style={{ textAlign: "center", marginTop: 10, fontSize: 12, color: T.t3 }}>Client is redirected to Monnify's secure checkout</div>
       </Card>
     </motion.div>
   );
 
   return (
-  <motion.div variants={stagger} initial="initial" animate="animate">
-    {/* Header */}
-    <motion.div variants={itemFade} style={{ marginBottom: 24 }}>
-      <div className="syne" style={{ fontSize: 26, fontWeight: 700, color: T.t1, letterSpacing: "-0.02em", marginBottom: 4 }}>
-        My Jobs
-      </div>
-      <div style={{ fontSize: 14, color: T.t2 }}>
-        {isArtisan ? "Manage active and past jobs." : "Track jobs, confirm delivery, release payments."}
-      </div>
-    </motion.div>
-
-    {/* Create Job Card - Swapped from 'isArtisan' to '!isArtisan' */}
-    {!isArtisan && (
-      <motion.div variants={itemFade}>
-        <Card style={{ marginBottom: 24 }}>
-          <div style={{ fontSize: 14, fontWeight: 600, color: T.t1, marginBottom: 14 }}>
-            Create New Job
-          </div>
-          <textarea 
-            value={jobDesc} 
-            onChange={(e) => setJobDesc(e.target.value)} 
-            placeholder="Describe the job..." 
-            style={{ 
-              width: "100%", 
-              minHeight: 100, 
-              padding: 14, 
-              border: `1px solid ${T.bdr2}`, 
-              borderRadius: 8, 
-              fontSize: 14, 
-              fontFamily: "inherit", 
-              color: T.t1, 
-              background: T.surf2, 
-              resize: "vertical", 
-              outline: "none", 
-              lineHeight: 1.6, 
-              marginBottom: 12, 
-            }} 
-          />
-          {generating && (
-            <div style={{ height: 3, background: "rgba(255,255,255,0.06)", borderRadius: 2, overflow: "hidden", marginBottom: 12 }}>
-              <motion.div 
-                animate={{ x: ["-100%", "200%"] }} 
-                transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }} 
-                style={{ height: "100%", width: "50%", background: `linear-gradient(90deg, transparent, ${T.gold}, transparent)`, borderRadius: 2 }} 
-              />
-            </div>
-          )} 
-          <BtnPrimary onClick={genPrice} disabled={generating}>
-            {generating ? "Generating..." : "Generate Price with AI"}
-          </BtnPrimary>
-        </Card>
+    <motion.div variants={stagger} initial="initial" animate="animate">
+      <motion.div variants={itemFade} style={{ marginBottom: 24 }}>
+        <div className="syne" style={{ fontSize: 26, fontWeight: 700, color: T.t1, letterSpacing: "-0.02em", marginBottom: 4 }}>
+          My Jobs
+        </div>
+        <div style={{ fontSize: 14, color: T.t2 }}>
+          {isArtisan ? "Manage active and past jobs." : "Track jobs, confirm delivery, release payments."}
+        </div>
       </motion.div>
-    )}
 
-    {/* Filter tabs */}
-    <motion.div variants={itemFade} style={{ display: "flex", gap: 6, marginBottom: 20, flexWrap: "wrap" }}>
-      {[["all", "All"], ["escrow", "In Escrow"], ["pending", "Pending"], ["done", "Completed"]].map(([v, l]) => (
-        <motion.button 
-          key={v} 
-          onClick={() => setFilter(v)} 
-          whileTap={{ scale: 0.97 }} 
-          style={{ 
-            padding: "7px 16px", 
-            borderRadius: 8, 
-            fontSize: 13, 
-            border: `1px solid ${filter === v ? T.gold + "60" : T.bdr}`, 
-            background: filter === v ? T.goldl : "transparent", 
-            color: filter === v ? T.gold : T.t2, 
-            cursor: "pointer", 
-            fontFamily: "inherit", 
-            transition: "all 0.15s", 
-          }}
-        >
-          {l}
-        </motion.button>
-      ))}
-    </motion.div>
+      {!isArtisan && (
+        <motion.div variants={itemFade}>
+          <Card style={{ marginBottom: 24 }}>
+            <div style={{ fontSize: 14, fontWeight: 600, color: T.t1, marginBottom: 14 }}>
+              Create New Job
+            </div>
+            <textarea
+              value={jobDesc}
+              onChange={(e) => setJobDesc(e.target.value)}
+              placeholder="Describe the job..."
+              style={{
+                width: "100%",
+                minHeight: 100,
+                padding: 14,
+                border: `1px solid ${T.bdr2}`,
+                borderRadius: 8,
+                fontSize: 14,
+                fontFamily: "inherit",
+                color: T.t1,
+                background: T.surf2,
+                resize: "vertical",
+                outline: "none",
+                lineHeight: 1.6,
+                marginBottom: 12,
+              }}
+            />
+            {generating && (
+              <div style={{ height: 3, background: "rgba(255,255,255,0.06)", borderRadius: 2, overflow: "hidden", marginBottom: 12 }}>
+                <motion.div
+                  animate={{ x: ["-100%", "200%"] }}
+                  transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }}
+                  style={{ height: "100%", width: "50%", background: `linear-gradient(90deg, transparent, ${T.gold}, transparent)`, borderRadius: 2 }}
+                />
+              </div>
+            )}
+            <BtnPrimary onClick={genPrice} disabled={generating}>
+              {generating ? "Generating..." : "Generate Price with AI"}
+            </BtnPrimary>
+          </Card>
+        </motion.div>
+      )}
 
-    {/* Jobs List Section */}
-    <motion.div variants={stagger} style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-      <AnimatePresence mode="popLayout">
-        {filtered.map((j, i) => {
-          if (!isArtisan && j.st !== "done") {
+      <motion.div variants={itemFade} style={{ display: "flex", gap: 6, marginBottom: 20, flexWrap: "wrap" }}>
+        {[["all", "All"], ["escrow", "In Escrow"], ["pending", "Pending"], ["done", "Completed"]].map(([v, l]) => (
+          <motion.button
+            key={v}
+            onClick={() => setFilter(v)}
+            whileTap={{ scale: 0.97 }}
+            style={{
+              padding: "7px 16px",
+              borderRadius: 8,
+              fontSize: 13,
+              border: `1px solid ${filter === v ? T.gold + "60" : T.bdr}`,
+              background: filter === v ? T.goldl : "transparent",
+              color: filter === v ? T.gold : T.t2,
+              cursor: "pointer",
+              fontFamily: "inherit",
+              transition: "all 0.15s",
+            }}
+          >
+            {l}
+          </motion.button>
+        ))}
+      </motion.div>
+
+      <motion.div variants={stagger} style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        <AnimatePresence mode="popLayout">
+          {filtered.map((j, i) => {
+            if (!isArtisan && j.st !== "done") {
+              return (
+                <motion.div
+                  key={i}
+                  variants={itemFade}
+                  layout
+                  style={{
+                    background: T.surf,
+                    border: `1px solid ${T.bdr}`,
+                    borderRadius: 12,
+                    padding: "16px 20px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                  }}
+                >
+                  <div>
+                    <div style={{ fontSize: 14, fontWeight: 500, color: T.t1, marginBottom: 3 }}>{j.desc}</div>
+                    <div style={{ fontSize: 12, color: T.t3 }}>{j.meta}</div>
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <span className="mono" style={{ fontSize: 15, fontWeight: 600, color: T.t1 }}>{j.amt}</span>
+                    <motion.button
+                      whileTap={{ scale: 0.96 }}
+                      disabled={payingOut === `deliver-${i}`}
+                      onClick={async () => {
+                        setPayingOut(`deliver-${i}`);
+                        const amountNum = Number(j.amt.replace(/[^\d]/g, ""));
+                        const result = await initiatePayout(amountNum, `JOB_${i}`);
+                        showToast(result.ok ? `Delivery confirmed. ${j.amt} released to artisan.` : result.message);
+                        setPayingOut(null);
+                      }}
+                      style={{
+                        padding: "7px 14px",
+                        borderRadius: 8,
+                        background: T.greenl,
+                        color: T.green,
+                        border: `1px solid ${T.green}30`,
+                        fontSize: 12,
+                        fontWeight: 600,
+                        cursor: payingOut === `deliver-${i}` ? "default" : "pointer",
+                        fontFamily: "inherit",
+                        opacity: payingOut === `deliver-${i}` ? 0.6 : 1,
+                      }}
+                    >
+                      {payingOut === `deliver-${i}` ? "Releasing..." : "✓ Confirm Delivery"}
+                    </motion.button>
+                    <motion.button
+                      whileTap={{ scale: 0.96 }}
+                      style={{
+                        padding: "7px 14px",
+                        borderRadius: 8,
+                        background: "transparent",
+                        color: T.red,
+                        border: `1px solid ${T.red}30`,
+                        fontSize: 12,
+                        fontWeight: 600,
+                        cursor: "pointer",
+                        fontFamily: "inherit",
+                      }}
+                    >
+                      Dispute
+                    </motion.button>
+                  </div>
+                </motion.div>
+              );
+            }
             return (
-              <motion.div 
-                key={i} 
-                variants={itemFade} 
-                layout 
-                style={{ 
-                  background: T.surf, 
-                  border: `1px solid ${T.bdr}`, 
-                  borderRadius: 12, 
-                  padding: "16px 20px", 
-                  display: "flex", 
-                  alignItems: "center", 
-                  justifyContent: "space-between" 
-                }}
-              >
-                <div>
-                  <div style={{ fontSize: 14, fontWeight: 500, color: T.t1, marginBottom: 3 }}>{j.desc}</div>
-                  <div style={{ fontSize: 12, color: T.t3 }}>{j.meta}</div>
-                </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  <span className="mono" style={{ fontSize: 15, fontWeight: 600, color: T.t1 }}>{j.amt}</span>
-                  <motion.button 
-                    whileTap={{ scale: 0.96 }} 
-                    onClick={() => showToast(`Delivery confirmed. ${j.amt} released to artisan.`)} 
-                    style={{ 
-                      padding: "7px 14px", 
-                      borderRadius: 8, 
-                      background: T.greenl, 
-                      color: T.green, 
-                      border: `1px solid ${T.green}30`, 
-                      fontSize: 12, 
-                      fontWeight: 600, 
-                      cursor: "pointer", 
-                      fontFamily: "inherit" 
-                    }}
-                  >
-                    ✓ Confirm Delivery
-                  </motion.button>
-                  <motion.button 
-                    whileTap={{ scale: 0.96 }} 
-                    style={{ 
-                      padding: "7px 14px", 
-                      borderRadius: 8, 
-                      background: "transparent", 
-                      color: T.red, 
-                      border: `1px solid ${T.red}30`, 
-                      fontSize: 12, 
-                      fontWeight: 600, 
-                      cursor: "pointer", 
-                      fontFamily: "inherit" 
-                    }}
-                  >
-                    Dispute
-                  </motion.button>
-                </div>
+              <motion.div key={i} variants={itemFade} layout>
+                <JobRow {...j} />
               </motion.div>
             );
-          }
-          return (
-            <motion.div key={i} variants={itemFade} layout>
-              <JobRow {...j} />
-            </motion.div>
-          );
-        })}
-      </AnimatePresence>
+          })}
+        </AnimatePresence>
+      </motion.div>
     </motion.div>
-  </motion.div>
-);
+  );
 }
 
 // ─── BIDDING ─────────────────────────────────────────────────────────────────
@@ -1478,6 +1501,7 @@ function WalletSection({ showToast }: { showToast: ToastFn }) {
   const [curr, setCurr] = useState("NGN");
   const [amt, setAmt] = useState("0");
   const [selectedBank, setSelectedBank] = useState(0);
+  const [withdrawing, setWithdrawing] = useState(false);
 
   const CURRENCIES: Currency[] = [
     { code: "NGN",  sym: "₦",   flag: "🇳🇬", rate: 1 },
@@ -1509,7 +1533,6 @@ function WalletSection({ showToast }: { showToast: ToastFn }) {
         <div style={{ fontSize: 14, color: T.t2 }}>Manage your balance, escrow, and withdrawals.</div>
       </motion.div>
 
-      {/* Balance cards */}
       <motion.div variants={itemFade} style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 24 }}>
         <div style={{ background: `linear-gradient(135deg, #1A2030, #141B28)`, border: `1px solid ${T.gold}22`, borderRadius: 16, padding: 22, position: "relative", overflow: "hidden" }}>
           <div style={{ position: "absolute", top: -30, right: -30, width: 100, height: 100, borderRadius: "50%", background: `radial-gradient(circle, ${T.gold}20 0%, transparent 70%)` }} />
@@ -1525,12 +1548,10 @@ function WalletSection({ showToast }: { showToast: ToastFn }) {
         </div>
       </motion.div>
 
-      {/* Withdraw card */}
       <motion.div variants={itemFade}>
         <Card style={{ marginBottom: 24, maxWidth: 500 }}>
           <div style={{ fontSize: 14, fontWeight: 600, color: T.t1, marginBottom: 20 }}>Withdraw Funds</div>
 
-          {/* Currency grid */}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(6,1fr)", gap: 6, marginBottom: 20 }}>
             {CURRENCIES.map((c) => (
               <motion.button key={c.code} onClick={() => setCurr(c.code)} whileTap={{ scale: 0.94 }}
@@ -1548,7 +1569,6 @@ function WalletSection({ showToast }: { showToast: ToastFn }) {
             ))}
           </div>
 
-          {/* Amount display */}
           <motion.div
             key={amt}
             initial={{ opacity: 0.7, scale: 0.98 }}
@@ -1561,7 +1581,6 @@ function WalletSection({ showToast }: { showToast: ToastFn }) {
             </div>
           </motion.div>
 
-          {/* Numpad */}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 8, marginBottom: 20 }}>
             {["1","2","3","4","5","6","7","8","9","000","0","del"].map((v) => (
               <motion.button key={v} whileTap={{ scale: 0.92 }} onClick={() => numPress(v)}
@@ -1574,7 +1593,6 @@ function WalletSection({ showToast }: { showToast: ToastFn }) {
             ))}
           </div>
 
-          {/* Banks */}
           <div style={{ marginBottom: 20 }}>
             {BANKS.map((b, i) => (
               <motion.div key={i} onClick={() => setSelectedBank(i)} whileTap={{ scale: 0.99 }}
@@ -1594,17 +1612,23 @@ function WalletSection({ showToast }: { showToast: ToastFn }) {
             ))}
           </div>
 
-          <BtnPrimary onClick={() => {
-            if (Number(amt) >= 100) { showToast(`${cur.sym}${Number(amt).toLocaleString()} withdrawal initiated`); setAmt("0"); }
-            else showToast("Enter a valid amount");
-          }}>
+          <BtnPrimary
+            loading={withdrawing}
+            onClick={async () => {
+              if (Number(amt) < 100) { showToast("Enter a valid amount"); return; }
+              setWithdrawing(true);
+              const result = await initiatePayout(Number(amt), `WITHDRAW_${Date.now()}`);
+              showToast(result.ok ? `${cur.sym}${Number(amt).toLocaleString()} withdrawal initiated` : result.message);
+              if (result.ok) setAmt("0");
+              setWithdrawing(false);
+            }}
+          >
             Withdraw Now
           </BtnPrimary>
-          <div style={{ textAlign: "center", marginTop: 10, fontSize: 12, color: T.t3 }}>Instant – 24h depending on bank · Powered by Squad</div>
+          <div style={{ textAlign: "center", marginTop: 10, fontSize: 12, color: T.t3 }}>Instant – 24h depending on bank</div>
         </Card>
       </motion.div>
 
-      {/* Transactions */}
       <motion.div variants={itemFade}>
         <Card>
           <div style={{ fontSize: 14, fontWeight: 600, color: T.t1, marginBottom: 16 }}>Transaction History</div>
@@ -1658,7 +1682,6 @@ function MessagesSection() {
   return (
     <motion.div {...fadeUp} style={{ height: "calc(100vh - 96px)" }}>
       <div style={{ display: "grid", gridTemplateColumns: "260px 1fr", height: "100%", border: `1px solid ${T.bdr}`, borderRadius: 16, overflow: "hidden", background: T.surf }}>
-        {/* Convo list */}
         <div style={{ borderRight: `1px solid ${T.bdr}`, overflowY: "auto", display: "flex", flexDirection: "column" }}>
           <div style={{ padding: "14px 14px 10px", borderBottom: `1px solid ${T.bdr}` }}>
             <div className="syne" style={{ fontSize: 14, fontWeight: 700, color: T.t1, marginBottom: 10 }}>Messages</div>
@@ -1680,7 +1703,6 @@ function MessagesSection() {
           ))}
         </div>
 
-        {/* Thread */}
         <div style={{ display: "flex", flexDirection: "column" }}>
           <div style={{ padding: "14px 20px", borderBottom: `1px solid ${T.bdr}`, display: "flex", alignItems: "center", gap: 12 }}>
             <Avatar initials={CONVS[active].init} size={36} />
@@ -1822,7 +1844,6 @@ function ProfileSection({ role }: { role: Role }) {
   return (
     <motion.div {...fadeUp}>
       <Card style={{ padding: 0, overflow: "hidden", maxWidth: 540 }}>
-        {/* Cover */}
         <div style={{ height: 130, background: `linear-gradient(135deg, #141A26, #1C2438)`, position: "relative", borderBottom: `1px solid ${T.bdr}` }}>
           <div style={{ position: "absolute", top: -40, right: -40, width: 200, height: 200, borderRadius: "50%", background: `radial-gradient(circle, ${T.gold}15 0%, transparent 70%)` }} />
           <div style={{ position: "absolute", bottom: -40, left: 24, width: 80, height: 80, borderRadius: "50%", background: `linear-gradient(135deg, ${T.gold}, ${T.goldd})`, border: `4px solid ${T.surf}`, display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -1843,7 +1864,6 @@ function ProfileSection({ role }: { role: Role }) {
             {isArtisan && <Badge variant="muted">14 Jobs Completed</Badge>}
           </div>
 
-          {/* Stats */}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 10, marginBottom: 24 }}>
             {stats.map(([v, l]) => (
               <div key={l} style={{ textAlign: "center", padding: 14, background: T.surf2, borderRadius: 10, border: `1px solid ${T.bdr}` }}>
@@ -1862,7 +1882,6 @@ function ProfileSection({ role }: { role: Role }) {
             </div>
           )}
 
-          {/* Reviews */}
           <div style={{ marginBottom: 24 }}>
             <div style={{ fontSize: 12, fontWeight: 600, color: T.t3, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 12 }}>Reviews</div>
             {[
@@ -1947,66 +1966,78 @@ export default function App() {
 // BACKEND INTEGRATION GUIDE FOR YOUR DEVELOPER
 // ════════════════════════════════════════════════════════════════════════════════
 //
-// ── 1. SQUAD PAYMENT API ──────────────────────────────────────────────────────
+// Stack: Google Gemini for pricing intelligence, Monnify for payment
+// collection/escrow/payout. The frontend calls three backend routes —
+// POST /price, POST /pay, POST /payout — all already wired into the UI
+// (see payWithMonnify() and initiatePayout() above).
 //
-// WHAT IT DOES: Squad handles payment collection, escrow holding, and withdrawal.
+// ── 1. MONNIFY PAYMENT API ────────────────────────────────────────────────────
 //
-// ENDPOINTS YOU NEED:
+// WHAT IT DOES: Monnify handles payment collection, escrow holding, and
+// disbursement to bank accounts.
 //
-// A) Initiate Payment (client pays into escrow)
-//    POST https://sandbox-api-d.squadco.com/transaction/initiate
-//    Headers: { Authorization: "Bearer YOUR_SECRET_KEY" }
+// A) Initiate Transaction (client pays into escrow) — your backend's POST /pay
+//    should call Monnify's:
+//    POST https://sandbox.monnify.com/api/v1/merchant/transactions/init-transaction
+//    Headers: { Authorization: "Bearer YOUR_ACCESS_TOKEN" }
 //    Body: {
-//      amount: 2100000,           // in kobo (₦21,000 × 100)
-//      email: "client@email.com",
-//      currency: "NGN",
-//      transaction_ref: "DEALR_JOB_ID_UNIQUE",
-//      callback_url: "https://yourapp.com/payment/callback",
-//      metadata: { job_id: "...", artisan_id: "...", client_id: "..." }
+//      amount: 21000,
+//      customerName: "Client Name",
+//      customerEmail: "client@email.com",
+//      paymentReference: "DEALR_JOB_ID_UNIQUE",
+//      paymentDescription: "Dealr job payment — Senator kaftan",
+//      currencyCode: "NGN",
+//      contractCode: "YOUR_CONTRACT_CODE",
+//      redirectUrl: "https://yourapp.com/payment/callback"
 //    }
-//    Response: { checkout_url: "https://pay.squadco.com/..." }
-//    → Redirect client to checkout_url
+//    Response: { responseBody: { checkoutUrl: "https://sandbox.monnify.com/checkout/..." } }
+//    → Your /pay route should respond to the frontend with { checkoutUrl }
+//      (this is exactly what payWithMonnify() expects before it redirects).
 //
-// B) Verify Payment (webhook or manual check)
-//    GET https://sandbox-api-d.squadco.com/transaction/verify/{transaction_ref}
+// B) Verify Transaction (webhook or manual check)
+//    GET https://sandbox.monnify.com/api/v1/merchant/transactions/query?paymentReference={ref}
 //    → On success, mark job status as "escrow" in your DB
 //
-// C) Initiate Transfer to Artisan (release escrow after delivery confirmed)
-//    POST https://sandbox-api-d.squadco.com/payout/initiate
+// C) Disburse to Artisan / Withdrawal (release escrow, or artisan cash-out) —
+//    your backend's POST /payout should call Monnify's:
+//    POST https://sandbox.monnify.com/api/v2/disbursements/single
 //    Body: {
-//      transaction_ref: "PAYOUT_UNIQUE_REF",
-//      amount: 2100000,
-//      bank_code: "058",          // artisan's bank code
-//      account_number: "1234567890",
-//      account_name: "Kehinde Adeyemi",
-//      currency_id: "NGN",
-//      remark: "Dealr job payment — Senator kaftan"
+//      amount: 21000,
+//      reference: "PAYOUT_UNIQUE_REF",
+//      narration: "Dealr job payment release",
+//      destinationBankCode: "058",
+//      destinationAccountNumber: "1234567890",
+//      currency: "NGN",
+//      sourceAccountNumber: "YOUR_WALLET_ACCOUNT_NUMBER"
 //    }
+//    → Your /payout route should respond with { message: "..." } which the
+//      frontend surfaces via toast (see initiatePayout()).
 //
 // D) Webhook Events to handle on your backend:
-//    - "charge.success"   → update job to "escrow", notify artisan
-//    - "transfer.success" → update job to "done", notify both parties
-//    - "transfer.failed"  → alert admin, retry logic
+//    - "SUCCESSFUL_TRANSACTION" → update job to "escrow", notify artisan
+//    - "SUCCESSFUL_DISBURSEMENT" → update job to "done", notify both parties
+//    - "FAILED_DISBURSEMENT" → alert admin, retry logic
 //
-// Squad Docs: https://squadinc.gitbook.io/squad-api-documentation
-// Test cards: 5063 5158 0430 5099 (CVV 081, Exp 08/32, PIN 1234)
+// Monnify Docs: https://developers.monnify.com
 //
-// ── 2. CLAUDE AI API (Anthropic) ─────────────────────────────────────────────
+// ── 2. GEMINI PRICING API ─────────────────────────────────────────────────────
 //
 // WHAT IT DOES: Powers the Price Advisor chat and Job Price Generator.
 //
 // BACKEND ROUTE (Node/Express example):
 //
-//   POST /api/price-check
-//   Body: { message: "I want to charge ₦120,000 for bridal makeup..." }
+//   POST /price
+//   Body: { prompt: "I want to charge ₦120,000 for bridal makeup..." }
 //
-//   const Anthropic = require("@anthropic-ai/sdk");
-//   const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+//   const { GoogleGenerativeAI } = require("@google/generative-ai");
+//   const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+//   const model = genAI.getGenerativeModel({ model: "gemini-2.5-pro" });
 //
 //   const SYSTEM_PROMPT = `
 //     You are a Nigerian artisan market pricing expert for the Dealr app.
 //     You know pricing for Lagos, Abuja, Port Harcourt markets.
-//     Respond ONLY with a JSON object:
+//     Reply with a short plain-English paragraph, then on a new line a
+//     \`\`\`json fenced block containing:
 //     {
 //       "verdict": "Fair" | "Too Low" | "Too High",
 //       "valid": true | false,
@@ -2018,25 +2049,19 @@ export default function App() {
 //     Consider location, urgency, skill level, and materials.
 //   `;
 //
-//   const response = await client.messages.create({
-//     model: "claude-opus-4-6",
-//     max_tokens: 512,
-//     system: SYSTEM_PROMPT,
-//     messages: [{ role: "user", content: body.message }]
-//   });
+//   const result = await model.generateContent([SYSTEM_PROMPT, body.prompt]);
+//   const reply = result.response.text();
+//   return res.json({ reply }); // frontend's parseAIResponse() handles the
+//                               // paragraph + fenced-JSON shape automatically.
 //
-//   // Parse JSON from response.content[0].text
-//   return JSON.parse(response.content[0].text);
-//
-// GENERATE JOB PRICE (for the "Create Job" flow):
-//   Body: { description: "Senator kaftan with hand embroidery, due tomorrow" }
-//   System prompt should return: { price, range, breakdown[], agreement_clauses[] }
+// GENERATE JOB PRICE (for the "Create Job" flow) works the same way — send
+// { description } and have the model return the same JSON shape.
 //
 // ── 3. DATABASE SCHEMA (key tables) ──────────────────────────────────────────
 //
-//   users      { id, name, email, role, location, squad_account_id, created_at }
+//   users      { id, name, email, role, location, monnify_account_ref, created_at }
 //   jobs       { id, artisan_id, client_id, description, amount_kobo, status,
-//                squad_transaction_ref, created_at }
+//                monnify_payment_ref, created_at }
 //                status: "draft" | "pending_payment" | "escrow" | "delivered" | "done" | "dispute"
 //   bids       { id, job_id, artisan_id, amount_kobo, placed_at, won }
 //   messages   { id, from_id, to_id, job_id, text, sent_at }
@@ -2044,28 +2069,26 @@ export default function App() {
 //
 // ── 4. ENV VARS NEEDED ────────────────────────────────────────────────────────
 //
-//   ANTHROPIC_API_KEY=sk-ant-...
-//   SQUAD_SECRET_KEY=sk_live_...   (or sk_test_... for sandbox)
-//   SQUAD_PUBLIC_KEY=pk_live_...
+//   VITE_BACKEND_URL=https://<your-codespace-name>-5000.app.github.dev   (frontend)
+//   GEMINI_API_KEY=...
+//   MONNIFY_API_KEY=MK_...
+//   MONNIFY_SECRET_KEY=...
+//   MONNIFY_CONTRACT_CODE=...
 //   DATABASE_URL=postgres://...
 //   WEBHOOK_SECRET=...
 //
-// ── 5. FRONTEND API CALLS TO REPLACE ─────────────────────────────────────────
+// ── 5. FRONTEND CALLS ALREADY WIRED ──────────────────────────────────────────
 //
-//   In PricingSection:  replace the setTimeout + PRICE_RESPONSES mock
-//     → fetch("/api/price-check", { method:"POST", body: JSON.stringify({message: t}) })
+//   PricingSection      → POST /price      (Gemini chat)
+//   JobsSection          → POST /pay        via payWithMonnify(), on
+//                          "Confirm & Send to Client" (checkout redirect)
+//   JobsSection          → POST /payout     via initiatePayout(), on
+//                          "Confirm Delivery" (release escrow to artisan)
+//   WalletSection        → POST /payout     via initiatePayout(), on
+//                          "Withdraw Now" (artisan cash-out to bank)
 //
-//   In JobsSection:     replace genPrice setTimeout
-//     → fetch("/api/generate-price", { method:"POST", body: JSON.stringify({description: jobDesc}) })
-//
-//   In JobsSection:     "Confirm Delivery" button
-//     → fetch("/api/jobs/:id/confirm", { method:"POST" })
-//       which triggers Squad payout to artisan
-//
-//   In WalletSection:   "Withdraw Now" button
-//     → fetch("/api/wallet/withdraw", { method:"POST", body: JSON.stringify({amount, bank_code, account_number, currency}) })
-//
-//   In BiddingSection:  "Place Bid" button
-//     → fetch("/api/bids", { method:"POST", body: JSON.stringify({job_id, amount}) })
-//
-// ════════════════════════════════════════════════════════════════════════════════
+// Two things still need real wiring once your auth is in place: the
+// hardcoded "client@example.com" placeholder in JobsSection should become
+// the actual logged-in client's email, and the fixed ₦21,000 test amount on
+// the "Confirm & Send to Client" button should read from the generated job's
+// real amount instead.
