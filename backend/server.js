@@ -1,6 +1,5 @@
 require("dotenv").config();
 
-
 const nodeFetch = (...args) => import("node-fetch").then(({ default: f }) => f(...args));
 if (!globalThis.fetch) globalThis.fetch = nodeFetch;
 
@@ -17,6 +16,7 @@ const MONNIFY_API_KEY     = clean(process.env.MONNIFY_API_KEY);
 const MONNIFY_SECRET_KEY  = clean(process.env.MONNIFY_SECRET_KEY);
 const MONNIFY_CONTRACT    = clean(process.env.MONNIFY_CONTRACT_CODE);
 const MONNIFY_WEBHOOK_SECRET = clean(process.env.MONNIFY_WEBHOOK_SECRET || "");
+const MONNIFY_WALLET_ACCOUNT_NUMBER = clean(process.env.MONNIFY_WALLET_ACCOUNT_NUMBER || "");
 
 const MONNIFY_BASE = "https://sandbox.monnify.com";
 
@@ -181,7 +181,7 @@ app.post("/pay", async (req, res) => {
 });
 
 // ════════════════════════════════════════════════════════════════════════════
-// PAYMENTS — /pay/verify  
+// PAYMENTS — /pay/verify
 // ════════════════════════════════════════════════════════════════════════════
 app.get("/pay/verify/:reference", async (req, res) => {
   try {
@@ -198,6 +198,76 @@ app.get("/pay/verify/:reference", async (req, res) => {
   } catch (err) {
     console.error("❌ /pay/verify error:", err.response?.data || err.message);
     res.status(500).json({ error: "Verification failed", details: err.message });
+  }
+});
+
+// ════════════════════════════════════════════════════════════════════════════
+// PAYOUTS — /payout  (disburse from wallet — escrow release or withdrawal)
+// ════════════════════════════════════════════════════════════════════════════
+// Used for two flows on the frontend: an artisan withdrawing their balance to
+// their own bank, and a client confirming delivery (releasing escrow to the
+// artisan's bank). Both hit this same route — the frontend supplies the
+// destination bank details in both cases.
+//
+app.post("/payout", async (req, res) => {
+  try {
+    const amount = req.body.amount || req.body.Amount;
+    const reference = req.body.jobId || req.body.reference || `PAYOUT-${Date.now()}`;
+    const destinationBankCode = req.body.destinationBankCode || req.body.bankCode;
+    const destinationAccountNumber = req.body.destinationAccountNumber || req.body.accountNumber;
+    const destinationAccountName = req.body.destinationAccountName || req.body.accountName || "Dealr User";
+    const narration = req.body.narration || `Dealr payout — ${reference}`;
+
+    if (!amount || Number(amount) < 100) {
+      return res.status(400).json({ error: "Invalid amount — must be ≥ 100 (₦)" });
+    }
+    if (!destinationBankCode || !destinationAccountNumber) {
+      return res.status(400).json({ error: "destinationBankCode and destinationAccountNumber are required" });
+    }
+    if (!MONNIFY_WALLET_ACCOUNT_NUMBER) {
+      return res.status(500).json({ error: "MONNIFY_WALLET_ACCOUNT_NUMBER is not configured on the server" });
+    }
+
+    const token = await getMonnifyToken();
+    const payoutReference = `DEALR-PAYOUT-${reference}-${Date.now()}`;
+
+    const payload = {
+      amount: Number(amount),
+      reference: payoutReference,
+      narration,
+      destinationBankCode,
+      destinationAccountNumber,
+      destinationAccountName,
+      currency: "NGN",
+      sourceAccountNumber: MONNIFY_WALLET_ACCOUNT_NUMBER,
+    };
+
+    const response = await axios.post(
+      `${MONNIFY_BASE}/api/v2/disbursements/single`,
+      payload,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json"
+        }
+      }
+    );
+
+    const body = response.data?.responseBody;
+
+    res.json({
+      message: "Payout initiated",
+      reference: payoutReference,
+      status: body?.status,
+      amount: body?.amount
+    });
+
+  } catch (err) {
+    console.error("❌ /payout error:", err.response?.data || err.message);
+    res.status(500).json({
+      error: "Payout failed",
+      details: err.response?.data?.responseMessage || err.message
+    });
   }
 });
 
@@ -241,6 +311,16 @@ app.post("/webhook/monnify", express.raw({ type: "application/json" }), (req, re
         console.log(`↩️  Payment reversed: ${eventData?.transactionReference}`);
         break;
 
+      case "SUCCESSFUL_DISBURSEMENT":
+        console.log(`✅ Payout confirmed: ${eventData?.reference}`);
+        // TODO: update job status to "done" in DB
+        break;
+
+      case "FAILED_DISBURSEMENT":
+        console.log(`❌ Payout failed: ${eventData?.reference}`);
+        // TODO: alert admin, retry logic
+        break;
+
       default:
         console.log(`ℹ️  Unhandled event: ${eventType}`);
     }
@@ -261,5 +341,6 @@ app.listen(PORT, () => {
   console.log(`\n🚀 Dealr backend running on port ${PORT}`);
   console.log(`   AI:      ${GEMINI_API_KEY ? "✅ Gemini key loaded" : "❌ GEMINI_API_KEY missing"}`);
   console.log(`   Monnify: ${MONNIFY_API_KEY ? "✅ API key loaded" : "❌ MONNIFY_API_KEY missing"}`);
-  console.log(`   Contract:${MONNIFY_CONTRACT ? "✅ Contract code loaded" : "❌ MONNIFY_CONTRACT_CODE missing"}\n`);
+  console.log(`   Contract:${MONNIFY_CONTRACT ? "✅ Contract code loaded" : "❌ MONNIFY_CONTRACT_CODE missing"}`);
+  console.log(`   Wallet:  ${MONNIFY_WALLET_ACCOUNT_NUMBER ? "✅ Source account loaded" : "❌ MONNIFY_WALLET_ACCOUNT_NUMBER missing"}\n`);
 });
