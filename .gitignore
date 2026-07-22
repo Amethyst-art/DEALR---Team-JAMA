@@ -1,5 +1,8 @@
 # Local Netlify folder
-.netlify
-.env echo node_modules/ git rm --cached .env git status
-.env
 node_modules/
+backend/node_modules/
+.env
+backend/.env
+backend/.env.local
+!backend/.env.example
+
