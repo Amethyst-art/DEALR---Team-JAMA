@@ -1111,7 +1111,7 @@ function PricingSection() {
             <div style={{ fontSize: 14, fontWeight: 600, color: T.t1 }}>Dealr Price Advisor</div>
             <div style={{ fontSize: 12, color: T.green, display: "flex", alignItems: "center", gap: 5 }}>
               <span style={{ width: 6, height: 6, borderRadius: "50%", background: T.green, display: "inline-block", animation: "pulse 2s infinite" }} />
-              Gemini AI · Online
+              Dealr AI · Online
             </div>
           </div>
         </div>
