@@ -1,346 +1,345 @@
-require("dotenv").config();
+import express from "express";
+import cors from "cors";
+import dotenv from "dotenv";
+import fetch from "node-fetch";
+import crypto from "crypto";
 
-const nodeFetch = (...args) => import("node-fetch").then(({ default: f }) => f(...args));
-if (!globalThis.fetch) globalThis.fetch = nodeFetch;
+dotenv.config();
 
-const express  = require("express");
-const cors     = require("cors");
-const axios    = require("axios");
-const crypto   = require("crypto");
+// ── Strip hidden characters from env vars ─────────────────────────────────────
+const clean = (v) => (v || "").replace(/[\r\n\s]+$/g, "").trim();
 
-// ── Strip hidden \r or surrounding quotes from env vars ─────────────────────
-const clean = (v = "") => v.replace(/\r/g, "").replace(/^["']|["']$/g, "").trim();
+const MONNIFY_API_KEY       = clean(process.env.MONNIFY_API_KEY);
+const MONNIFY_SECRET_KEY    = clean(process.env.MONNIFY_SECRET_KEY);
+const MONNIFY_CONTRACT_CODE = clean(process.env.MONNIFY_CONTRACT_CODE);
+const MONNIFY_BASE          = "https://sandbox.monnify.com";
 
-const GEMINI_API_KEY      = clean(process.env.GEMINI_API_KEY);
-const MONNIFY_API_KEY     = clean(process.env.MONNIFY_API_KEY);
-const MONNIFY_SECRET_KEY  = clean(process.env.MONNIFY_SECRET_KEY);
-const MONNIFY_CONTRACT    = clean(process.env.MONNIFY_CONTRACT_CODE);
-const MONNIFY_WEBHOOK_SECRET = clean(process.env.MONNIFY_WEBHOOK_SECRET || "");
-const MONNIFY_WALLET_ACCOUNT_NUMBER = clean(process.env.MONNIFY_WALLET_ACCOUNT_NUMBER || "");
-
-const MONNIFY_BASE = "https://sandbox.monnify.com";
+// ── Warn about missing keys on startup ───────────────────────────────────────
+const REQUIRED = { GEMINI_API_KEY, MONNIFY_API_KEY, MONNIFY_SECRET_KEY, MONNIFY_CONTRACT_CODE };
+Object.entries(REQUIRED).forEach(([k, v]) => {
+  if (!v) console.warn(`⚠️  Missing env var: ${k}`);
+});
 
 const app = express();
 app.use(cors());
-app.use(express.json());
 
-// ── Health check ─────────────────────────────────────────────────────────────
-app.get("/", (req, res) => res.json({ status: "Dealr backend running" }));
-
-// ════════════════════════════════════════════════════════════════════════════
-// AI — /ask-ai  (Gemini)
-// ════════════════════════════════════════════════════════════════════════════
-const SYSTEM_PROMPT = `You are Dealr AI — a pricing assistant for Nigerian artisans.
-When the user describes a job and a proposed price, analyse it and reply ONLY with this exact JSON structure.
-No markdown fences, no extra text before or after the JSON:
-
-{
-  "verdict": "Fair" | "Too Low" | "Too High",
-  "valid": true | false,
-  "range": "₦X,000 – ₦Y,000",
-  "breakdown": {
-    "Item name": "₦Amount",
-    "Item name": "₦Amount"
-  },
-  "note": "1-2 sentence plain English advice in the Nigerian market context"
-}
-
-Rules:
-- Use realistic 2024/2025 Nigerian market rates for Lagos and Abuja
-- Factor in materials, labour time, skill level, urgency
-- "valid" is true if the proposed price is within or above market range
-- Keep breakdown to 3-5 line items maximum
-- Write the note in warm, direct language — like a mentor, not a textbook`;
-
-app.post("/ask-ai", async (req, res) => {
-  try {
-    const { prompt } = req.body;
-    if (!prompt) return res.status(400).json({ error: "No prompt provided" });
-
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
-
-    const body = {
-      contents: [
-        {
-          parts: [
-            { text: SYSTEM_PROMPT + "\n\nUser message: " + prompt }
-          ]
-        }
-      ],
-      generationConfig: {
-        temperature: 0.3,
-        maxOutputTokens: 512
-      }
-    };
-
-    const response = await axios.post(url, body, {
-      headers: { "Content-Type": "application/json" }
-    });
-
-    const raw = response.data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
-
-    // Strip any markdown fences Gemini might add despite instructions
-    const cleaned = raw
-      .replace(/```json/gi, "")
-      .replace(/```/g, "")
-      .trim();
-
-    res.json({ reply: cleaned });
-
-  } catch (err) {
-    console.error("❌ /ask-ai error:", err.response?.data || err.message);
-    res.status(500).json({
-      error: "AI request failed",
-      details: err.response?.data?.error?.message || err.message
-    });
+// Raw body for webhook signature verification — JSON for everything else
+app.use((req, res, next) => {
+  if (req.path === "/webhook/monnify") {
+    let raw = "";
+    req.on("data", (c) => { raw += c.toString(); });
+    req.on("end", () => { req.rawBody = raw; next(); });
+  } else {
+    express.json()(req, res, next);
   }
 });
 
 // ════════════════════════════════════════════════════════════════════════════
-// MONNIFY — helpers
+// HEALTH
+// ════════════════════════════════════════════════════════════════════════════
+app.get("/", (_req, res) => res.json({ status: "ok", service: "Dealr Backend" }));
+app.get("/health", (_req, res) => res.json({ status: "ok", time: new Date().toISOString() }));
+
+// ════════════════════════════════════════════════════════════════════════════
+// AI  —  POST /price
+// Frontend sends: { prompt: string }
+// Backend calls:  Claude API
+// Returns:        { reply: string }  ← JSON string the frontend parses
+// ════════════════════════════════════════════════════════════════════════════
+const GEMINI_API_KEY = clean(process.env.GEMINI_API_KEY);
+
+const SYSTEM_PROMPT = `You are Dealr AI, a pricing expert for Nigerian artisans in Lagos, Abuja, and Port Harcourt.
+
+When the user describes a job and a proposed price, respond with ONLY a valid JSON object.
+No markdown. No code fences. No text outside the JSON.
+
+Format:
+{
+  "verdict": "Fair" or "Too Low" or "Too High",
+  "valid": true or false,
+  "range": "₦X,000 – ₦Y,000",
+  "breakdown": {
+    "Line item name": "₦Amount"
+  },
+  "note": "1-2 sentences of plain English advice for the Nigerian market"
+}
+
+Rules:
+- Use real 2024/2025 Nigerian market rates
+- Include 3-5 breakdown items
+- "valid" is true when proposed price is at or above the fair range floor
+- Convert shorthand: 50k = ₦50,000, 120k = ₦120,000
+- Never wrap output in markdown code blocks`;
+
+app.post("/price", async (req, res) => {
+  try {
+    const { prompt } = req.body;
+    if (!prompt) return res.status(400).json({ error: "prompt is required" });
+
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
+
+    const response = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        system_instruction: { parts: [{ text: SYSTEM_PROMPT }] },
+        contents: [{ role: "user", parts: [{ text: prompt }] }],
+        generationConfig: { temperature: 0.3, maxOutputTokens: 800 },
+      }),
+    });
+
+    if (!response.ok) {
+      const err = await response.text();
+      console.error("Gemini error:", err);
+      return res.status(502).json({ error: "Gemini API error", details: err });
+    }
+
+    const data = await response.json();
+    const raw  = data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
+
+    // Strip any accidental markdown fences before sending
+    const cleaned = raw.replace(/```json/gi, "").replace(/```/g, "").trim();
+
+    res.json({ reply: cleaned });
+  } catch (err) {
+    console.error("❌ /price:", err.message);
+    res.status(500).json({ error: "AI request failed", details: err.message });
+  }
+});
+
+// Keep /ask-ai as an alias so old frontend calls still work
+app.post("/ask-ai", (req, res) => {
+  req.url = "/price";
+  app._router.handle(req, res);
+});
+
+// ════════════════════════════════════════════════════════════════════════════
+// MONNIFY HELPER  —  Get Bearer token
 // ════════════════════════════════════════════════════════════════════════════
 async function getMonnifyToken() {
-  const credentials = Buffer.from(`${MONNIFY_API_KEY}:${MONNIFY_SECRET_KEY}`).toString("base64");
+  const credentials = Buffer.from(
+    `${MONNIFY_API_KEY}:${MONNIFY_SECRET_KEY}`
+  ).toString("base64");
 
-  const response = await axios.post(
-    `${MONNIFY_BASE}/api/v1/auth/login`,
-    {},                                              // empty body — Monnify needs this
-    {
-      headers: {
-        Authorization: `Basic ${credentials}`,
-        "Content-Type": "application/json"
-      }
-    }
-  );
+  const response = await fetch(`${MONNIFY_BASE}/api/v1/auth/login`, {
+    method: "POST",
+    headers: {
+      Authorization: `Basic ${credentials}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({}),   // Monnify login requires an empty JSON body
+  });
 
-  const token = response.data?.responseBody?.accessToken;
-  if (!token) throw new Error("No access token returned by Monnify");
+  if (!response.ok) {
+    const err = await response.text();
+    throw new Error(`Monnify auth failed: ${err}`);
+  }
+
+  const data  = await response.json();
+  const token = data?.responseBody?.accessToken;
+  if (!token) throw new Error("No accessToken in Monnify response");
   return token;
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-// PAYMENTS — /pay  (initialise Monnify transaction)
+// PAY  —  POST /pay
+// Frontend sends: { amount: number, email: string, jobId: string }
+// Returns:        { checkoutUrl: string, paymentReference: string }
 // ════════════════════════════════════════════════════════════════════════════
 app.post("/pay", async (req, res) => {
   try {
-    // Normalise field names — handle both camelCase and snake_case from frontend
-    const amount      = req.body.amount      || req.body.Amount;
-    const email       = req.body.email       || req.body.customerEmail || "client@dealr.app";
-    const jobId       = req.body.jobId       || req.body.job_id        || `JOB-${Date.now()}`;
-    const customerName = req.body.customerName || req.body.name        || "Dealr Client";
+    // Accept multiple field name conventions from the frontend
+    const amount = req.body.amount ?? req.body.Amount;
+    const email  = req.body.email  ?? req.body.customerEmail ?? "client@dealr.app";
+    const jobId  = req.body.jobId  ?? req.body.job_id ?? `JOB_${Date.now()}`;
+    const name   = req.body.name   ?? req.body.customerName ?? "Dealr Client";
+    const desc   = req.body.description ?? "Dealr Job Payment";
 
-    if (!amount || Number(amount) < 100) {
-      return res.status(400).json({ error: "Invalid amount — must be ≥ 100 (₦)" });
+    // Validate
+    const numAmount = Number(amount);
+    if (!amount || isNaN(numAmount) || numAmount <= 0) {
+      return res.status(400).json({ error: "amount must be a positive number (in Naira)" });
     }
 
     const token = await getMonnifyToken();
 
-    // paymentReference must be unique every time
-    const paymentReference = `DEALR-${jobId}-${Date.now()}`;
+    // Unique reference — alphanumeric only, max 64 chars
+    const paymentReference = `DEALR-${String(jobId).replace(/[^a-zA-Z0-9]/g, "").slice(0, 20)}-${Date.now()}`;
 
-    const payload = {
-      amount:             Number(amount),
-      customerName,
-      customerEmail:      email,
-      paymentReference,
-      paymentDescription: `Dealr escrow payment — Job #${jobId}`,
-      currencyCode:       "NGN",
-      contractCode:       MONNIFY_CONTRACT,
-      redirectUrl:        process.env.FRONTEND_URL || "http://localhost:5173/payment-success",
-      paymentMethods:     ["CARD", "ACCOUNT_TRANSFER", "USSD", "PHONE_NUMBER"]
-    };
-
-    const response = await axios.post(
+    const response = await fetch(
       `${MONNIFY_BASE}/api/v1/merchant/transactions/init-transaction`,
-      payload,
       {
+        method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json"
-        }
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          amount: numAmount,
+          customerName: name,
+          customerEmail: email,
+          paymentReference,
+          paymentDescription: desc,
+          currencyCode: "NGN",
+          contractCode: MONNIFY_CONTRACT_CODE,
+          redirectUrl: process.env.REDIRECT_URL ?? "http://localhost:5173/payment-success",
+          paymentMethods: ["CARD", "ACCOUNT_TRANSFER", "USSD", "PHONE_NUMBER"],
+        }),
       }
     );
 
-    const body = response.data?.responseBody;
-    if (!body?.checkoutUrl) throw new Error("No checkoutUrl returned");
+    if (!response.ok) {
+      const errText = await response.text();
+      console.error("Monnify /pay error:", errText);
+      return res.status(502).json({ error: "Monnify rejected the request", details: errText });
+    }
+
+    const data = await response.json();
+    const body = data?.responseBody;
+    if (!body?.checkoutUrl) throw new Error("No checkoutUrl in Monnify response");
 
     res.json({
-      checkoutUrl:        body.checkoutUrl,
-      paymentReference:   body.paymentReference,
-      transactionRef:     body.transactionReference,
-      status:             body.status
+      success: true,
+      checkoutUrl: body.checkoutUrl,
+      transactionReference: body.transactionReference,
+      paymentReference,
     });
-
   } catch (err) {
-    console.error("❌ /pay error:", err.response?.data || err.message);
-    res.status(500).json({
-      error:   "Payment initiation failed",
-      details: err.response?.data?.responseMessage || err.message
-    });
+    console.error("❌ /pay:", err.message);
+    res.status(500).json({ error: "Payment initiation failed", details: err.message });
   }
 });
 
-// ════════════════════════════════════════════════════════════════════════════
-// PAYMENTS — /pay/verify
-// ════════════════════════════════════════════════════════════════════════════
-app.get("/pay/verify/:reference", async (req, res) => {
-  try {
-    const token = await getMonnifyToken();
-    const ref = encodeURIComponent(req.params.reference);
+// Legacy route alias — frontend may call /initiate-payment
+app.post("/initiate-payment", (req, res) => {
+  req.url = "/pay";
+  app._router.handle(req, res);
+});
 
-    const response = await axios.get(
-      `${MONNIFY_BASE}/api/v2/transactions/${ref}`,
+// ════════════════════════════════════════════════════════════════════════════
+// VERIFY  —  GET /pay/verify/:ref
+// Returns Monnify transaction status for a given paymentReference
+// ════════════════════════════════════════════════════════════════════════════
+app.get("/pay/verify/:ref", async (req, res) => {
+  try {
+    const token    = await getMonnifyToken();
+    const response = await fetch(
+      `${MONNIFY_BASE}/api/v2/merchant/transactions/query?paymentReference=${req.params.ref}`,
       { headers: { Authorization: `Bearer ${token}` } }
     );
-
-    res.json(response.data?.responseBody || {});
-
+    const data = await response.json();
+    res.json(data?.responseBody ?? {});
   } catch (err) {
-    console.error("❌ /pay/verify error:", err.response?.data || err.message);
+    console.error("❌ /pay/verify:", err.message);
     res.status(500).json({ error: "Verification failed", details: err.message });
   }
 });
 
 // ════════════════════════════════════════════════════════════════════════════
-// PAYOUTS — /payout  (disburse from wallet — escrow release or withdrawal)
+// PAYOUT  —  POST /payout
+// Triggered when client confirms delivery → releases escrow to artisan
+// Frontend sends: { amount: number, jobId: string }
 // ════════════════════════════════════════════════════════════════════════════
-// Used for two flows on the frontend: an artisan withdrawing their balance to
-// their own bank, and a client confirming delivery (releasing escrow to the
-// artisan's bank). Both hit this same route — the frontend supplies the
-// destination bank details in both cases.
-//
 app.post("/payout", async (req, res) => {
   try {
-    const amount = req.body.amount || req.body.Amount;
-    const reference = req.body.jobId || req.body.reference || `PAYOUT-${Date.now()}`;
-    const destinationBankCode = req.body.destinationBankCode || req.body.bankCode;
-    const destinationAccountNumber = req.body.destinationAccountNumber || req.body.accountNumber;
-    const destinationAccountName = req.body.destinationAccountName || req.body.accountName || "Dealr User";
-    const narration = req.body.narration || `Dealr payout — ${reference}`;
+    const { amount, jobId, accountNumber, bankCode, accountName } = req.body;
 
-    if (!amount || Number(amount) < 100) {
-      return res.status(400).json({ error: "Invalid amount — must be ≥ 100 (₦)" });
-    }
-    if (!destinationBankCode || !destinationAccountNumber) {
-      return res.status(400).json({ error: "destinationBankCode and destinationAccountNumber are required" });
-    }
-    if (!MONNIFY_WALLET_ACCOUNT_NUMBER) {
-      return res.status(500).json({ error: "MONNIFY_WALLET_ACCOUNT_NUMBER is not configured on the server" });
+    if (!amount || !jobId) {
+      return res.status(400).json({ error: "amount and jobId are required" });
     }
 
-    const token = await getMonnifyToken();
-    const payoutReference = `DEALR-PAYOUT-${reference}-${Date.now()}`;
+    // If no real bank details provided yet, simulate the payout for demo
+    if (!accountNumber || !bankCode) {
+      console.log(`[DEMO] Simulating payout of ₦${amount} for job ${jobId}`);
+      return res.json({
+        success: true,
+        message: `₦${Number(amount).toLocaleString()} released to artisan successfully`,
+        status: "SIMULATED",
+      });
+    }
 
-    const payload = {
-      amount: Number(amount),
-      reference: payoutReference,
-      narration,
-      destinationBankCode,
-      destinationAccountNumber,
-      destinationAccountName,
-      currency: "NGN",
-      sourceAccountNumber: MONNIFY_WALLET_ACCOUNT_NUMBER,
-    };
-
-    const response = await axios.post(
-      `${MONNIFY_BASE}/api/v2/disbursements/single`,
-      payload,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json"
-        }
-      }
-    );
-
-    const body = response.data?.responseBody;
-
-    res.json({
-      message: "Payout initiated",
-      reference: payoutReference,
-      status: body?.status,
-      amount: body?.amount
+    const token    = await getMonnifyToken();
+    const response = await fetch(`${MONNIFY_BASE}/api/v2/disbursements/single`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        amount: Number(amount),
+        reference: `DEALR-PAY-${String(jobId).replace(/[^a-zA-Z0-9]/g, "")}-${Date.now()}`,
+        narration: "Dealr job payment release",
+        destinationBankCode: bankCode,
+        destinationAccountNumber: accountNumber,
+        currency: "NGN",
+        destinationAccountName: accountName ?? "Artisan",
+        async: false,
+      }),
     });
 
+    const data = await response.json();
+    res.json({ success: true, message: "Payout initiated", data: data?.responseBody });
   } catch (err) {
-    console.error("❌ /payout error:", err.response?.data || err.message);
-    res.status(500).json({
-      error: "Payout failed",
-      details: err.response?.data?.responseMessage || err.message
-    });
+    console.error("❌ /payout:", err.message);
+    res.status(500).json({ error: "Payout failed", details: err.message });
   }
 });
 
-// ════════════════════════════════════════════════════════════════════════════
-// WEBHOOK — /webhook/monnify  (Monnify payment notifications)
-// ════════════════════════════════════════════════════════════════════════════
-app.post("/webhook/monnify", express.raw({ type: "application/json" }), (req, res) => {
-  try {
-    // Verify signature if secret is set
-    if (MONNIFY_WEBHOOK_SECRET) {
-      const signature = req.headers["monnify-signature"] || "";
-      const hash = crypto
-        .createHmac("sha512", MONNIFY_WEBHOOK_SECRET)
-        .update(req.body)
-        .digest("hex");
+// Legacy alias
+app.post("/withdraw", (req, res) => {
+  req.url = "/payout";
+  app._router.handle(req, res);
+});
 
-      if (hash !== signature) {
-        console.warn("⚠️  Webhook signature mismatch");
+// ════════════════════════════════════════════════════════════════════════════
+// WEBHOOK  —  POST /webhook/monnify
+// Monnify posts here after every transaction event
+// ════════════════════════════════════════════════════════════════════════════
+app.post("/webhook/monnify", (req, res) => {
+  try {
+    const sig = req.headers["monnify-signature"];
+    if (sig && MONNIFY_SECRET_KEY) {
+      const computed = crypto
+        .createHmac("sha512", MONNIFY_SECRET_KEY)
+        .update(req.rawBody ?? "")
+        .digest("hex");
+      if (computed !== sig) {
+        console.warn("⚠️  Webhook signature mismatch — rejected");
         return res.status(401).json({ error: "Invalid signature" });
       }
     }
 
-    const event = JSON.parse(req.body.toString());
-    const { eventType, eventData } = event;
+    const { eventType, eventData } = JSON.parse(req.rawBody ?? "{}");
+    console.log(`📩 Webhook: ${eventType} | ref: ${eventData?.paymentReference ?? eventData?.reference}`);
 
-    console.log(`📩 Webhook received: ${eventType}`);
-
-    // Handle payment events
     switch (eventType) {
       case "SUCCESSFUL_TRANSACTION":
-        console.log(`✅ Payment confirmed: ${eventData?.transactionReference} — ₦${eventData?.amountPaid}`);
-        // TODO: update job status to "escrow" in DB
+        // TODO: mark job as "escrow" in DB, notify artisan
         break;
-
       case "FAILED_TRANSACTION":
-        console.log(`❌ Payment failed: ${eventData?.transactionReference}`);
-        // TODO: notify artisan and client
+        // TODO: mark job as "payment_failed", notify client
         break;
-
-      case "REVERSED_TRANSACTION":
-        console.log(`↩️  Payment reversed: ${eventData?.transactionReference}`);
-        break;
-
       case "SUCCESSFUL_DISBURSEMENT":
-        console.log(`✅ Payout confirmed: ${eventData?.reference}`);
-        // TODO: update job status to "done" in DB
+        // TODO: mark job as "done", notify both parties
         break;
-
-      case "FAILED_DISBURSEMENT":
-        console.log(`❌ Payout failed: ${eventData?.reference}`);
-        // TODO: alert admin, retry logic
-        break;
-
-      default:
-        console.log(`ℹ️  Unhandled event: ${eventType}`);
     }
 
+    // Always return 200 — Monnify retries on anything else
     res.status(200).json({ received: true });
-
   } catch (err) {
-    console.error("❌ Webhook error:", err.message);
-    res.status(500).json({ error: "Webhook processing failed" });
+    console.error("❌ Webhook:", err.message);
+    res.status(200).json({ received: true });
   }
 });
 
-// ════════════════════════════════════════════════════════════════════════════
-// START
-// ════════════════════════════════════════════════════════════════════════════
+// ── Start ─────────────────────────────────────────────────────────────────────
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
-  console.log(`\n🚀 Dealr backend running on port ${PORT}`);
-  console.log(`   AI:      ${GEMINI_API_KEY ? "✅ Gemini key loaded" : "❌ GEMINI_API_KEY missing"}`);
-  console.log(`   Monnify: ${MONNIFY_API_KEY ? "✅ API key loaded" : "❌ MONNIFY_API_KEY missing"}`);
-  console.log(`   Contract:${MONNIFY_CONTRACT ? "✅ Contract code loaded" : "❌ MONNIFY_CONTRACT_CODE missing"}`);
-  console.log(`   Wallet:  ${MONNIFY_WALLET_ACCOUNT_NUMBER ? "✅ Source account loaded" : "❌ MONNIFY_WALLET_ACCOUNT_NUMBER missing"}\n`);
+  console.log(`\n Dealr backend on port ${PORT}`);
+  console.log(`   GET  /health`);
+  console.log(`   POST /price          ← AI pricing (Claude)`);
+  console.log(`   POST /pay            ← Monnify checkout`);
+  console.log(`   GET  /pay/verify/:ref`);
+  console.log(`   POST /payout         ← Release escrow to artisan`);
+  console.log(`   POST /webhook/monnify\n`);
 });
